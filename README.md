@@ -1,5 +1,9 @@
 # breachpoint-frontend
 
+Production deployment uses the root `docker-compose.yml` as one Portainer stack
+for the frontend, backend, and a dedicated Postgres service. See
+[`docs/portainer-deployment.md`](docs/portainer-deployment.md).
+
 The player-facing client for BreachPoint Round 1 — Signal Zero. It is a thin
 shell over [`breachpoint-backend`](../breachpoint-backend): the server owns the
 game, this owns how it looks.

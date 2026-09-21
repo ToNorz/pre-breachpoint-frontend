@@ -10,7 +10,7 @@ RUN bun install --frozen-lockfile
 COPY . .
 
 # Build-time environment variables for Vite
-ARG VITE_API_BASE_URL=http://localhost:8080
+ARG VITE_API_BASE_URL=/
 ARG VITE_EVENT_SLUG=breachpoint-2026-r1
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_EVENT_SLUG=$VITE_EVENT_SLUG
