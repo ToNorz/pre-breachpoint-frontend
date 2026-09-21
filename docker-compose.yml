@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: breachpoint
       POSTGRES_DB: breachpoint
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in Portainer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-breachpoint}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -16,39 +16,38 @@ services:
 
   migrate:
     image: ghcr.io/csa-tech-team/breachpoint-backend:${BACKEND_IMAGE_TAG:-latest}
-    pull_policy: always
     restart: "no"
     command: ["bun", "run", "db:migrate"]
     environment:
-      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD}@postgres:5432/breachpoint
+      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD:-breachpoint}@postgres:5432/breachpoint
     depends_on:
       postgres:
         condition: service_healthy
 
   seed:
     image: ghcr.io/csa-tech-team/breachpoint-backend:${BACKEND_IMAGE_TAG:-latest}
-    pull_policy: always
     restart: "no"
     command: ["bun", "run", "db:seed"]
     environment:
-      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD}@postgres:5432/breachpoint
-      ADMIN_1_PASSWORD: ${ADMIN_1_PASSWORD:?Set ADMIN_1_PASSWORD in Portainer}
-      ADMIN_2_PASSWORD: ${ADMIN_2_PASSWORD:?Set ADMIN_2_PASSWORD in Portainer}
-      ADMIN_3_PASSWORD: ${ADMIN_3_PASSWORD:?Set ADMIN_3_PASSWORD in Portainer}
+      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD:-breachpoint}@postgres:5432/breachpoint
+      ADMIN_1_PASSWORD: ${ADMIN_1_PASSWORD:-AdminPassword2026!}
+      ADMIN_2_PASSWORD: ${ADMIN_2_PASSWORD:-OpsPassword2026!}
+      ADMIN_3_PASSWORD: ${ADMIN_3_PASSWORD:-ControlPassword2026!}
+      AUTO_PUBLISH: ${AUTO_PUBLISH:-true}
+      EVENT_HOURS: ${EVENT_HOURS:-48}
     depends_on:
       migrate:
         condition: service_completed_successfully
 
   backend:
     image: ghcr.io/csa-tech-team/breachpoint-backend:${BACKEND_IMAGE_TAG:-latest}
-    pull_policy: always
     restart: unless-stopped
     environment:
       PORT: "8080"
       HOST: 0.0.0.0
-      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD}@postgres:5432/breachpoint
-      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in Portainer}
-      FRONTEND_URL: ${FRONTEND_ORIGIN:-http://localhost:32081}
+      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD:-breachpoint}@postgres:5432/breachpoint
+      JWT_SECRET: ${JWT_SECRET:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9_breachpoint_secret_32chars!}
+      FRONTEND_URL: ${FRONTEND_ORIGIN:-http://localhost:32081,http://localhost:3000}
     ports:
       - "127.0.0.1:32082:8080"
     depends_on:
@@ -63,7 +62,6 @@ services:
 
   frontend:
     image: ghcr.io/csa-tech-team/breachpoint-frontend:${FRONTEND_IMAGE_TAG:-latest}
-    pull_policy: always
     restart: unless-stopped
     ports:
       - "127.0.0.1:32081:3000"
