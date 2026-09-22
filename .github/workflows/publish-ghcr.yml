@@ -40,15 +40,3 @@ jobs:
             VITE_EVENT_SLUG=breachpoint-2026-r1
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Trigger Portainer redeploy
-        env:
-          PORTAINER_WEBHOOK_URL: ${{ secrets.PORTAINER_WEBHOOK_URL }}
-        run: |
-          if [ -z "$PORTAINER_WEBHOOK_URL" ]; then
-            echo "PORTAINER_WEBHOOK_URL is not set - skipping redeploy."
-            exit 0
-          fi
-          # Portainer re-pulls the :latest image and recreates the stack.
-          curl -fsS -X POST "$PORTAINER_WEBHOOK_URL"
-          echo "Portainer redeploy triggered."
