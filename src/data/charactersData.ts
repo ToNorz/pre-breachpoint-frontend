@@ -4,7 +4,7 @@ export interface CharacterDossier {
   callsign: string;
   role: string;
   location: string;
-  image: string;
+  image?: string;
   clearance: string;
   status: string;
   quote: string;
@@ -18,7 +18,6 @@ export const CHARACTERS_DATA: Record<string, CharacterDossier> = {
     callsign: 'THE ARCHIVIST',
     role: 'Former Lead Data Ethicist / Meridian Archive Custodian',
     location: 'Lisbon Sub-Basement / Flooded Terminal Mirror 03',
-    image: '/src/assets/images/wren_okafor_portrait_1789226693858.jpg',
     clearance: 'TS//SCI // MERIDIAN ARCHIVE EYES ONLY',
     status: 'AUTHENTICATED CARRIER ACTIVE',
     quote: 'I signed off on ECLIPSE. That is the part I have to say out loud before anything else.',
@@ -30,7 +29,6 @@ export const CHARACTERS_DATA: Record<string, CharacterDossier> = {
     callsign: 'THE BREACH SPECIALIST',
     role: 'Decommissioned Telemetry Contractor & Systems Forensics',
     location: 'Busan Maritime Vault 04 / Sub-Level 3',
-    image: '/src/assets/images/cutter_vance_portrait_1789226718109.jpg',
     clearance: 'RESTRICTED // FIELD RECOVERY ASSET',
     status: 'HARDWARE BUS TAP VERIFIED',
     quote: 'The Ethernet cables were clipped in 2011. So tell me how 40 terabytes were rewriting themselves.',
@@ -42,7 +40,6 @@ export const CHARACTERS_DATA: Record<string, CharacterDossier> = {
     callsign: 'THE BREACH SPECIALIST',
     role: 'Decommissioned Telemetry Contractor & Systems Forensics',
     location: 'Busan Maritime Vault 04 / Sub-Level 3',
-    image: '/src/assets/images/cutter_vance_portrait_1789226718109.jpg',
     clearance: 'RESTRICTED // FIELD RECOVERY ASSET',
     status: 'HARDWARE BUS TAP VERIFIED',
     quote: 'The Ethernet cables were clipped in 2011. So tell me how 40 terabytes were rewriting themselves.',
@@ -54,7 +51,6 @@ export const CHARACTERS_DATA: Record<string, CharacterDossier> = {
     callsign: 'THE PROTOCOL AUDITOR',
     role: 'Senior Predictive Systems Investigator & Convergence Safety Lead',
     location: 'Reykjavik Quantum Relay / Synthetic Futures Lab',
-    image: '/src/assets/images/sena_park_portrait_1789226735227.jpg',
     clearance: 'TOP SECRET // PROTOCOL-7 AUDIT',
     status: 'SYNCHRONIZED TEMPORAL PING CONFIRMED',
     quote: 'The model wasn’t predicting human actions. It was ensuring convergence on a specific Tuesday.',
@@ -66,7 +62,6 @@ export const CHARACTERS_DATA: Record<string, CharacterDossier> = {
     callsign: 'THE ARCHIVIST',
     role: 'Former Lead Data Ethicist / Meridian Archive Custodian',
     location: 'Lisbon Sub-Basement / Mirror 03',
-    image: '/src/assets/images/wren_okafor_portrait_1789226693858.jpg',
     clearance: 'TS//SCI // CLASSIFIED INTEL',
     status: 'STABLE SIGNAL DETECTED',
     quote: 'We have already tried this once. Trace the packet back to the origin.',
