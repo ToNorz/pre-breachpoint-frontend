@@ -136,6 +136,7 @@ export type ViewType =
   | 'ADMIN_GLITCHES'
   | 'ADMIN_TEAMS'
   | 'ADMIN_ACTIVITY'
+  | 'ADMIN_SPIN_WHEEL'
   | 'ADMIN_LEADERBOARD';
 
 export interface AdminTeamInfo {

@@ -310,6 +310,84 @@ export interface ApiSkipResult {
   message: string;
 }
 
+export interface ApiSpinWheelStatus {
+  totalQuota: number;
+  spinsUsed: number;
+  spinsRemaining: number;
+  spunChallengeIds?: string[];
+  logs: Array<{
+    id: string;
+    segment: string;
+    challengeId: string;
+    isFreeSpin: boolean;
+    awardedData?: Record<string, unknown> | null;
+    createdAt: string;
+  }>;
+}
+
+export interface ApiSpinWheelResult {
+  logId: string;
+  segment: 'GAME_1' | 'BETTER_LUCK' | 'GAME_2' | 'FREE_HINT' | 'GAME_3' | 'FREE_SPIN';
+  label: string;
+  sectorIndex: number;
+  isFreeSpin: boolean;
+  totalQuota: number;
+  spinsUsed: number;
+  spinsRemaining: number;
+  awarded?: {
+    type?: string;
+    game?: string;
+    title?: string;
+    message?: string;
+    hintId?: string | null;
+    hintBody?: string;
+    hintCostSaved?: number;
+  } | null;
+}
+
+export interface AdminSpinWheelLogItem {
+  id: string;
+  eventId: string;
+  teamId: string;
+  teamName: string;
+  userId: string;
+  username: string;
+  challengeId: string;
+  challengeTitle: string;
+  segment: string;
+  isFreeSpin: boolean;
+  awardedData?: {
+    type?: string;
+    game?: string;
+    title?: string;
+    message?: string;
+    hintId?: string | null;
+    hintBody?: string;
+    hintCostSaved?: number;
+  } | Record<string, unknown> | null;
+  spinsUsed: number;
+  spinsRemaining: number;
+  totalQuota: number;
+  createdAt: string;
+}
+
+export interface AdminSpinWheelResponse {
+  totalQuota: number;
+  stats: {
+    totalSpins: number;
+    totalFreeHints: number;
+    totalFreeSpins: number;
+    activeTeamsCount: number;
+  };
+  probabilities: Array<{
+    segment: string;
+    label: string;
+    probability: string;
+    probValue: number;
+  }>;
+  logs: AdminSpinWheelLogItem[];
+}
+
 export interface ApiHint {
   id: string;
   challengeId: string;
@@ -479,6 +557,12 @@ export const api = {
   scoreboard: (eventId: string) => get<ApiScoreboard>(`/events/${eventId}/scoreboard`),
   timeGlitch: (eventId: string) => get<ApiTimeGlitch>(`/events/${eventId}/time-glitch`),
 
+  // spin wheel
+  getSpinWheelStatus: (eventId: string) =>
+    get<ApiSpinWheelStatus>(`/events/${eventId}/spin-wheel`),
+  spinWheel: (eventId: string, challengeId: string) =>
+    post<ApiSpinWheelResult>(`/events/${eventId}/spin-wheel/spin`, { challengeId }),
+
   // ---- admin ----
 
   // events
@@ -546,5 +630,9 @@ export const api = {
   // live submissions
   adminListSubmissions: (eventId: string, limit?: number) =>
     get<AdminSubmissionLog[]>(`/admin/events/${eventId}/submissions${limit ? `?limit=${limit}` : ''}`),
+
+  // spin wheel audit logs
+  adminGetSpinWheelLogs: (eventId: string) =>
+    get<AdminSpinWheelResponse>(`/admin/events/${eventId}/spin-wheel/logs`),
 };
 

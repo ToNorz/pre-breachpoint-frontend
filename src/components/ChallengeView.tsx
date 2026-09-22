@@ -4,6 +4,7 @@ import { DIFFICULTY_META } from '../services/backend';
 import { TONE } from '../data/pathsData';
 import { Hint } from '../types';
 import { api } from '../services/api';
+import { SpinWheelModal } from './SpinWheelModal';
 
 export const ChallengeView: React.FC = () => {
   const {
@@ -19,6 +20,7 @@ export const ChallengeView: React.FC = () => {
   });
   const [hints, setHints] = useState<Hint[] | null>(null);
   const [showHints, setShowHints] = useState(false);
+  const [showSpinWheel, setShowSpinWheel] = useState(false);
   const [showAdminEdit, setShowAdminEdit] = useState(false);
   const [confirmSkip, setConfirmSkip] = useState(false);
 
@@ -221,8 +223,8 @@ export const ChallengeView: React.FC = () => {
           </div>
         )}
 
-        {/* Hints: Opens as a modal popup dialog directly on top of the page */}
-        <div className="mt-8 border-t border-[#1E2536] pt-6 max-w-4xl flex items-center justify-between">
+        {/* Hints and Quantum Spin Wheel access */}
+        <div className="mt-8 border-t border-[#1E2536] pt-6 max-w-4xl flex items-center justify-between flex-wrap gap-3">
           <button
             type="button"
             onClick={() => {
@@ -232,6 +234,14 @@ export const ChallengeView: React.FC = () => {
             className="px-3.5 py-2 border border-[#E0A83E]/40 bg-[#E0A83E]/5 text-[11px] font-semibold tracking-[0.2em] text-[#E0A83E] hover:bg-[#E0A83E]/15 cursor-pointer flex items-center gap-2 transition-colors"
           >
             <span>💡</span> HINTS & INTEL ({hints ? hints.length : '…'})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowSpinWheel(true)}
+            className="px-3.5 py-2 border border-[#5ED6E3]/50 bg-[#5ED6E3]/10 text-[11px] font-semibold tracking-[0.2em] text-[#5ED6E3] hover:bg-[#5ED6E3]/20 cursor-pointer flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(94,214,227,0.15)]"
+          >
+            <span className="text-[13px]">⚡</span> QUANTUM WHEEL
           </button>
         </div>
 
@@ -258,6 +268,27 @@ export const ChallengeView: React.FC = () => {
                 </button>
               </div>
               <div className="mt-4 space-y-3">
+                {/* Quantum Wheel callout inside Hints & Intel dialog */}
+                <div className="p-3.5 border border-[#5ED6E3]/40 bg-[#5ED6E3]/5 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] font-bold tracking-[0.2em] text-[#5ED6E3] font-mono flex items-center gap-1.5">
+                      <span>🎡</span> QUANTUM WHEEL
+                    </div>
+                    <div className="text-[10px] text-[#8B93A9] mt-0.5">
+                      Spin for 0-pt hints, bonus games, or extra spins! (10 spins/team)
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowHints(false);
+                      setShowSpinWheel(true);
+                    }}
+                    className="px-3 py-1.5 border border-[#5ED6E3] bg-[#5ED6E3]/20 hover:bg-[#5ED6E3]/30 text-[#5ED6E3] text-[10px] font-mono tracking-[0.15em] font-bold cursor-pointer whitespace-nowrap transition-colors"
+                  >
+                    SPIN NOW →
+                  </button>
+                </div>
                 {hints === null && <div className="text-[12px] text-[#8B93A9] py-4 text-center">Reading hint telemetry…</div>}
                 {hints?.length === 0 && (
                   <div className="text-[12px] text-[#8B93A9] py-4 text-center">No hints published for this challenge.</div>
@@ -414,6 +445,17 @@ export const ChallengeView: React.FC = () => {
             </div>
           )}
         </form>
+
+        {showSpinWheel && event && activeChallenge && (
+          <SpinWheelModal
+            eventId={event.id}
+            challengeId={activeChallenge.id}
+            challengeTitle={activeChallenge.title}
+            isOpen={showSpinWheel}
+            onClose={() => setShowSpinWheel(false)}
+            onHintUnlocked={() => void refreshHints()}
+          />
+        )}
 
         {showAdminEdit && event && (
           <AdminChallengeModal

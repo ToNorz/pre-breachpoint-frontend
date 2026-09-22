@@ -271,7 +271,7 @@ export const AdminDashboard: React.FC = () => {
             {/* Quick Action Navigation Cards */}
             <div className="mt-8">
               <div className="text-[9px] tracking-[0.3em] text-[#E0A83E] mb-3">■ COMMAND SECTIONS</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <NavCard
                   title="LIVE LEADERBOARD"
                   detail="Real-time rankings & scores"
@@ -306,6 +306,13 @@ export const AdminDashboard: React.FC = () => {
                   sub="Real-time submission audit and flag validation"
                   onClick={() => navigateTo('ADMIN_ACTIVITY')}
                   btnLabel="OPEN TELEMETRY →"
+                />
+                <NavCard
+                  title="SPIN WHEEL AUDIT"
+                  detail="Quantum wheel telemetry"
+                  sub="Audit team spins, quotas, rewards & probability logs"
+                  onClick={() => navigateTo('ADMIN_SPIN_WHEEL')}
+                  btnLabel="OPEN SPIN AUDIT →"
                 />
               </div>
             </div>

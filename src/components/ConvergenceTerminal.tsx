@@ -83,6 +83,20 @@ export const ConvergenceTerminal: React.FC = () => {
   // Submit individual path final challenge (A10, B10, C10)
   const handlePathSubmit = async (e: React.FormEvent, pathId: PathId, challengeId: string) => {
     e.preventDefault();
+    const pathData = paths.find((p) => p.code === pathId);
+    const hasEntered = Boolean(pathData?.isAttempted);
+    const solvedOrSkipped = (pathData?.solved ?? 0) + (pathData?.skipped ?? 0);
+    if (!hasEntered || solvedOrSkipped < 9) {
+      setPathMsg((prev) => ({
+        ...prev,
+        [pathId]: {
+          type: 'error',
+          text: `You must complete all preceding challenges (1-9) in Path ${pathId} before submitting ${pathId}10. (${solvedOrSkipped}/9 completed)`,
+        },
+      }));
+      return;
+    }
+
     const inputFlag = pathInputs[pathId]?.trim();
     if (!inputFlag || pathBusy[pathId]) return;
 
@@ -168,6 +182,11 @@ export const ConvergenceTerminal: React.FC = () => {
                 const isPathLoading = pathBusy[row.path];
                 const msgState = pathMsg[row.path];
 
+                const hasEntered = Boolean(pathData?.isAttempted);
+                const solvedOrSkipped = (pathData?.solved ?? 0) + (pathData?.skipped ?? 0);
+                const requiredPreceding = 9;
+                const isReady = hasEntered && solvedOrSkipped >= requiredPreceding;
+
                 return (
                   <div
                     key={row.key}
@@ -203,12 +222,18 @@ export const ConvergenceTerminal: React.FC = () => {
                       <span
                         className="text-[10px] font-mono font-bold tracking-[0.2em] px-2.5 py-0.5 rounded border"
                         style={{
-                          color: held ? pathColor : '#5A6379',
-                          borderColor: held ? `${pathColor}60` : '#1E2536',
-                          backgroundColor: held ? `${pathColor}15` : 'transparent',
+                          color: held ? pathColor : isReady ? '#5ED6E3' : '#5A6379',
+                          borderColor: held ? `${pathColor}60` : isReady ? '#5ED6E360' : '#1E2536',
+                          backgroundColor: held ? `${pathColor}15` : isReady ? '#5ED6E315' : 'transparent',
                         }}
                       >
-                        {held ? '✦ HELD // VERIFIED' : '○ PENDING SUBMISSION'}
+                        {held
+                          ? '✦ HELD // VERIFIED'
+                          : isReady
+                          ? '● UNLOCKED // READY'
+                          : !hasEntered
+                          ? '○ PATH UNTOUCHED'
+                          : `🔒 LOCKED (${solvedOrSkipped}/${requiredPreceding})`}
                       </span>
                     </div>
 
@@ -216,43 +241,89 @@ export const ConvergenceTerminal: React.FC = () => {
                       {row.description}
                     </p>
 
-                    {/* If NOT held: show dedicated submission form for this path final challenge */}
-                    {!held ? (
-                      <form
-                        onSubmit={(e) => handlePathSubmit(e, row.path, challengeId)}
-                        className="mt-3.5 pt-3 border-t border-[#1E2536]/80 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5"
-                      >
-                        <div className="flex-1 flex items-center gap-2 bg-[#07090F] border border-[#1E2536] px-3 py-1.5 focus-within:border-[#5ED6E3]">
-                          <span className="text-[#454C61] font-mono text-[12px]">$</span>
-                          <input
-                            type="text"
-                            value={pathInputs[row.path]}
-                            onChange={(e) =>
-                              setPathInputs((prev) => ({ ...prev, [row.path]: e.target.value }))
-                            }
-                            placeholder={`Enter ${row.slot} flag (BreachPoint{...})`}
-                            className="flex-1 bg-transparent font-mono text-[12px] text-[#F2F5FA] focus:outline-none placeholder-[#3A4256]"
-                          />
-                        </div>
-                        <button
-                          type="submit"
-                          disabled={isPathLoading || !pathInputs[row.path]?.trim()}
-                          className="px-4 py-2 text-[10px] font-bold tracking-[0.18em] cursor-pointer disabled:opacity-30 transition-colors uppercase whitespace-nowrap"
-                          style={{
-                            backgroundColor: pathColor,
-                            color: '#06232A',
-                          }}
-                        >
-                          {isPathLoading ? 'CHECKING…' : `SUBMIT ${row.slot}`}
-                        </button>
-                      </form>
-                    ) : (
+                    {/* If held: show secured state */}
+                    {held ? (
                       <div className="mt-3 pt-2.5 border-t border-[#1E2536]/60 flex items-center justify-between text-[11px] font-mono">
                         <span className="text-[#5ED6E3] flex items-center gap-1.5">
                           <span>✓</span>
                           <span>Fragment secured and loaded into the Convergence chamber.</span>
                         </span>
                         <span className="text-[#5A6379]">STATUS: 100% COMPLETE</span>
+                      </div>
+                    ) : !isReady ? (
+                      /* If NOT ready (1-9 not complete): show sealed status with link to path trail */
+                      <div className="mt-3.5 pt-3 border-t border-[#1E2536]/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#07090F]/70 p-3.5 border border-[#1E2536]">
+                        <div className="space-y-1">
+                          <div className="text-[11px] font-mono text-[#E84D7E] flex items-center gap-1.5 font-bold">
+                            <span>🔒</span> TERMINAL SEALED // PREREQUISITES REQUIRED
+                          </div>
+                          <div className="text-[11px] text-[#8B93A9] font-mono">
+                            {!hasEntered
+                              ? `Your team has not entered Path ${row.path} yet. Complete challenges 1–9 on Path ${row.path} to submit this terminal node.`
+                              : `Complete challenges 1–9 on Path ${row.path} (${solvedOrSkipped}/${requiredPreceding} completed) before submitting ${row.slot}.`}
+                          </div>
+                          <div className="flex items-center gap-2 pt-1">
+                            <div className="w-36 bg-[#141824] h-1.5 rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all duration-300"
+                                style={{
+                                  width: `${Math.min(100, (solvedOrSkipped / requiredPreceding) * 100)}%`,
+                                  backgroundColor: pathColor,
+                                }}
+                              />
+                            </div>
+                            <span className="text-[10px] font-mono text-[#5A6379]">
+                              {solvedOrSkipped}/{requiredPreceding} COMPLETED
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => navigateTo('TRAIL', null, row.path)}
+                          className="px-3.5 py-1.5 text-[10px] font-bold tracking-[0.18em] cursor-pointer font-mono border transition-all whitespace-nowrap"
+                          style={{
+                            color: pathColor,
+                            borderColor: `${pathColor}60`,
+                            backgroundColor: `${pathColor}15`,
+                          }}
+                        >
+                          OPEN PATH {row.path} TRAIL →
+                        </button>
+                      </div>
+                    ) : (
+                      /* If ready (1-9 complete): enable submission for 10th challenge */
+                      <div className="mt-3.5 pt-3 border-t border-[#1E2536]/80">
+                        <div className="text-[10px] font-mono text-[#5ED6E3] mb-2 flex items-center gap-1.5">
+                          <span>✦</span> PATH {row.path} CHALLENGES 1–9 COMPLETED. SUBMIT FINAL SEAL ({row.slot}):
+                        </div>
+                        <form
+                          onSubmit={(e) => handlePathSubmit(e, row.path, challengeId)}
+                          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5"
+                        >
+                          <div className="flex-1 flex items-center gap-2 bg-[#07090F] border border-[#1E2536] px-3 py-1.5 focus-within:border-[#5ED6E3]">
+                            <span className="text-[#454C61] font-mono text-[12px]">$</span>
+                            <input
+                              type="text"
+                              value={pathInputs[row.path]}
+                              onChange={(e) =>
+                                setPathInputs((prev) => ({ ...prev, [row.path]: e.target.value }))
+                              }
+                              placeholder={`Enter ${row.slot} flag (BreachPoint{...})`}
+                              className="flex-1 bg-transparent font-mono text-[12px] text-[#F2F5FA] focus:outline-none placeholder-[#3A4256]"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={isPathLoading || !pathInputs[row.path]?.trim()}
+                            className="px-4 py-2 text-[10px] font-bold tracking-[0.18em] cursor-pointer disabled:opacity-30 transition-colors uppercase whitespace-nowrap"
+                            style={{
+                              backgroundColor: pathColor,
+                              color: '#06232A',
+                            }}
+                          >
+                            {isPathLoading ? 'CHECKING…' : `SUBMIT ${row.slot}`}
+                          </button>
+                        </form>
                       </div>
                     )}
 

@@ -10,6 +10,7 @@ const TABS: { label: string; view: ViewType }[] = [
   { label: 'TIME GLITCHES', view: 'ADMIN_GLITCHES' },
   { label: 'TEAMS', view: 'ADMIN_TEAMS' },
   { label: 'LIVE ACTIVITY', view: 'ADMIN_ACTIVITY' },
+  { label: 'SPIN WHEEL', view: 'ADMIN_SPIN_WHEEL' },
 ];
 
 export const AdminNav: React.FC = () => {
