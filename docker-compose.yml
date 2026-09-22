@@ -16,6 +16,9 @@ services:
 
   migrate:
     image: ghcr.io/csa-tech-team/breachpoint-backend:${BACKEND_IMAGE_TAG:-latest}
+    # Required while the tags are mutable (:latest): without it Docker reuses
+    # whatever copy of the tag the host already has and a redeploy ships nothing.
+    pull_policy: always
     restart: "no"
     command: ["bun", "run", "db:migrate"]
     environment:
@@ -26,6 +29,7 @@ services:
 
   seed:
     image: ghcr.io/csa-tech-team/breachpoint-backend:${BACKEND_IMAGE_TAG:-latest}
+    pull_policy: always
     restart: "no"
     command: ["bun", "run", "db:seed"]
     environment:
@@ -41,6 +45,7 @@ services:
 
   backend:
     image: ghcr.io/csa-tech-team/breachpoint-backend:${BACKEND_IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     environment:
       PORT: "8080"
@@ -62,6 +67,7 @@ services:
 
   frontend:
     image: ghcr.io/csa-tech-team/breachpoint-frontend:${FRONTEND_IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     ports:
       - "127.0.0.1:32081:3000"
