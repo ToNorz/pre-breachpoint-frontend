@@ -3,6 +3,7 @@ import { useGame } from '../../context/GameContext';
 import { api, AdminChallenge, AdminTimeGlitch } from '../../services/api';
 import { AdminEventStats } from '../../types';
 import { AdminNav } from './AdminNav';
+import { CornerTicks } from '../LoginForm';
 
 export const AdminDashboard: React.FC = () => {
   const { adminEvent, navigateTo, notify } = useGame();
@@ -45,7 +46,7 @@ export const AdminDashboard: React.FC = () => {
         'EVENT STATUS UPDATED',
         adminEvent.isPublished ? 'Event unpublished (Draft).' : 'Event published (Live).',
       );
-      window.location.reload();
+      void loadData();
     } catch (e: unknown) {
       notify('error', 'FAILED', e instanceof Error ? e.message : 'Unknown error');
     } finally {
@@ -63,7 +64,7 @@ export const AdminDashboard: React.FC = () => {
         'LEADERBOARD UPDATED',
         adminEvent.isFrozen ? 'Board unfrozen.' : 'Board frozen.',
       );
-      window.location.reload();
+      void loadData();
     } catch (e: unknown) {
       notify('error', 'FAILED', e instanceof Error ? e.message : 'Unknown error');
     } finally {
@@ -83,7 +84,7 @@ export const AdminDashboard: React.FC = () => {
         isPublished: true,
       });
       notify('success', 'WINDOW ACTIVATED', `Event set to Live for ${hours} hours.`);
-      window.location.reload();
+      void loadData();
     } catch (e: unknown) {
       notify('error', 'FAILED', e instanceof Error ? e.message : 'Unknown error');
     } finally {
@@ -100,7 +101,7 @@ export const AdminDashboard: React.FC = () => {
         endsAt: now.toISOString(),
       });
       notify('success', 'EVENT CLOSED', 'Event end time set to now.');
-      window.location.reload();
+      void loadData();
     } catch (e: unknown) {
       notify('error', 'FAILED', e instanceof Error ? e.message : 'Unknown error');
     } finally {
@@ -125,7 +126,7 @@ export const AdminDashboard: React.FC = () => {
   return (
     <>
       <AdminNav />
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-8 scan-faint">
         {loading ? (
           <div className="text-[11px] tracking-[0.3em] text-[#5A6379]">ESTABLISHING COMMAND TELEMETRY…</div>
         ) : !adminEvent ? (
@@ -195,7 +196,8 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Time Window & Glitch Status */}
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="border border-[#1E2536] bg-[#0B0E16]/70 p-5">
+              <div className="relative border border-[#1E2536] bg-[#0B0E16]/70 p-5">
+                <CornerTicks color="#E0A83E" />
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] tracking-[0.25em] text-[#5A6379]">EVENT TIME WINDOW</span>
                   <span className={`text-[10px] tracking-[0.2em] font-bold ${
@@ -241,7 +243,8 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <div className="border border-[#1E2536] bg-[#0B0E16]/70 p-5">
+              <div className="relative border border-[#1E2536] bg-[#0B0E16]/70 p-5">
+                <CornerTicks color="#E0A83E" />
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] tracking-[0.25em] text-[#5A6379]">TIME GLITCH ENGINE</span>
                   <button
@@ -318,7 +321,7 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             {/* Controls Bar */}
-            <div className="mt-8 border border-[#1E2536] bg-[#0A0D15] p-5 flex items-center justify-between flex-wrap gap-4">
+            <div className="mt-8 border border-[#1E2536] border-l-2 border-l-[#E0A83E] bg-[#0A0D15] p-5 flex items-center justify-between flex-wrap gap-4">
               <div>
                 <div className="text-[10px] tracking-[0.2em] text-[#E0A83E]">EVENT CONTROLS</div>
                 <div className="text-[12px] text-[#8B93A9] mt-0.5">Toggle publication or leaderboard freeze state.</div>
@@ -361,7 +364,8 @@ const StatCard: React.FC<{ label: string; value: string; color: string; sub?: st
   color,
   sub,
 }) => (
-  <div className="border border-[#1E2536] bg-[#0B0E16]/70 px-4 py-3.5">
+  <div className="relative border border-[#1E2536] bg-[#0B0E16]/70 px-4 py-3.5 transition-colors hover:border-[#5ED6E3]/40 hover:bg-[#0E131F]">
+    <CornerTicks />
     <div className="text-[9px] tracking-[0.25em] text-[#5A6379]">{label}</div>
     <div className="mt-1 text-[17px] font-bold tracking-[0.08em]" style={{ color }}>
       {value}
@@ -377,7 +381,8 @@ const NavCard: React.FC<{
   onClick: () => void;
   btnLabel: string;
 }> = ({ title, detail, sub, onClick, btnLabel }) => (
-  <div className="border border-[#1E2536] bg-[#0B0E16]/70 p-5 flex flex-col justify-between">
+  <div className="relative border border-[#1E2536] bg-[#0B0E16]/70 p-5 flex flex-col justify-between transition-all hover:border-[#E0A83E]/40 hover:-translate-y-0.5">
+    <CornerTicks color="#E0A83E" />
     <div>
       <div className="text-[12px] font-bold tracking-[0.15em] text-[#F2F5FA] font-display">{title}</div>
       <div className="mt-1 text-[11px] text-[#5ED6E3]">{detail}</div>
@@ -385,7 +390,7 @@ const NavCard: React.FC<{
     </div>
     <button
       onClick={onClick}
-      className="mt-5 w-full border border-[#1E2536] py-2 text-[10px] tracking-[0.18em] text-[#5ED6E3] hover:border-[#5ED6E3] hover:bg-[#5ED6E3]/[0.06] cursor-pointer text-center"
+      className="mt-5 w-full border border-[#1E2536] py-2 text-[10px] tracking-[0.18em] text-[#5ED6E3] hover:border-[#5ED6E3] hover:bg-[#5ED6E3]/[0.06] cursor-pointer text-center hover:shadow-[0_0_15px_rgba(94,214,227,0.15)]"
     >
       {btnLabel}
     </button>

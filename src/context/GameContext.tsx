@@ -22,25 +22,21 @@ import {
 import {
   boardChallenges,
   challengesForPath,
-  convergenceChallenge,
   pathStates,
   setCategoryNames,
-  toHints,
   toScoreboard,
   welcomeChallenge,
 } from '../services/backend';
 import {
   Challenge,
-  FragmentKey,
-  Hint,
   PathId,
   PathState,
   StandaloneChallenge,
   TeamScore,
   ViewType,
 } from '../types';
-import { PATH_SKINS, isPathId } from '../data/pathsData';
 import { ParsedRoute, parseHash, viewToHash } from '../utils/router';
+import { isPathId } from '../data/pathsData';
 import { soundFx } from '../utils/audio';
 
 export interface ToastNotification {
@@ -50,15 +46,6 @@ export interface ToastNotification {
   message: string;
   points?: number;
   pathId?: PathId;
-}
-
-export interface NarrationItem {
-  id: string;
-  kind: 'challenge' | 'path';
-  title: string;
-  speaker: string;
-  subTag: string;
-  lines: string[];
 }
 
 /** Uniform shape for every action a component can trigger. */
@@ -140,28 +127,15 @@ interface GameContextType {
   refresh: () => Promise<void>;
   paths: PathState[];
   chosenPath: PathId | null;
-  activePath: PathId;
-  setActivePath: (path: PathId) => void;
   getPathChallenges: (path: PathId) => Challenge[];
   visibleChallenges: Challenge[];
   activeChallenge: Challenge | null;
   activeChallengeId: string | null;
   solvedSlots: string[];
-  skippedSlots: string[];
   score: number;
   rank: number | null;
-  pathScores: { pathA: number; pathB: number; pathC: number; total: number };
-  getPathPoints: (path: PathId) => number;
-  skips: { used: number; remaining: number; quota: number };
-  rewardMultiplier: number;
-  fragments: FragmentKey[];
+  pathScores: { pathA: number; total: number };
   welcome: StandaloneChallenge | null;
-  convergence: StandaloneChallenge | null;
-  isPathComplete: (path: PathId) => boolean;
-  isPathLocked: (path: PathId) => boolean;
-  pathCompletionPrompt: { pathCode: PathId; fragment: string } | null;
-  closeCompletionPrompt: () => void;
-  resumeSlot: string | null;
   formattedTimer: string;
   glitchEndsAt: number | null;
   glitchLabel: string | null;
@@ -177,31 +151,17 @@ interface GameContextType {
 
   // Actions
   choosePath: (path: PathId) => Promise<ActionResult>;
-  switchPath: (path: PathId) => Promise<ActionResult>;
   submitFlag: (challengeId: string, flag: string) => Promise<ActionResult>;
-  skipChallenge: (challengeId: string) => Promise<ActionResult>;
-  loadHints: (challengeId: string) => Promise<Hint[]>;
-  unlockHint: (challengeId: string, hintId: string) => Promise<ActionResult>;
   scoreboard: TeamScore[];
   scoreboardFrozen: boolean;
   loadScoreboard: () => Promise<void>;
 
   // UI
   currentView: ViewType;
-  navigateTo: (view: ViewType, slot?: string | null, pathId?: PathId) => void;
+  navigateTo: (view: ViewType, slot?: string | null) => void;
   toast: ToastNotification | null;
   notify: (type: 'success' | 'error' | 'info', title: string, message: string) => void;
   dismissToast: () => void;
-  narrationQueue: NarrationItem[];
-  dismissNarration: () => void;
-  briefingChallenge: Challenge | null;
-  showBriefingModal: boolean;
-  openBriefing: (slot: string) => void;
-  closeBriefing: () => void;
-  tourOpen: boolean;
-  toggleTour: (open?: boolean) => void;
-  storyOpen: boolean;
-  setStoryOpen: (open: boolean) => void;
   audioEnabled: boolean;
   toggleAudio: () => void;
 }
@@ -247,16 +207,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // UI-only state. None of this is authoritative, so it stays local.
   const [currentView, setCurrentView] = useState<ViewType>('LOGIN');
-  const [viewingPath, setViewingPath] = useState<PathId>('A');
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastNotification | null>(null);
-  const [narrationQueue, setNarrationQueue] = useState<NarrationItem[]>([]);
-  const [briefingSlot, setBriefingSlot] = useState<string | null>(null);
-  const [showBriefingModal, setShowBriefingModal] = useState(false);
-  const [tourOpen, setTourOpen] = useState(false);
-  const [storyOpen, setStoryOpen] = useState(false);
-  const [pathCompletionPrompt, setPathCompletionPrompt] = useState<{ pathCode: PathId; fragment: string } | null>(null);
-  const closeCompletionPrompt = useCallback(() => setPathCompletionPrompt(null), []);
   const [now, setNow] = useState(() => Date.now());
   const [audioEnabled, setAudioEnabled] = useState<boolean>(() => {
     try {
@@ -468,7 +420,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ------------------------------------------------------- derived state ----
 
   const paths = useMemo(() => pathStates(board), [board]);
-  const fragments = useMemo(() => board?.fragments ?? [], [board]);
   const chosenPath = useMemo<PathId | null>(() => {
     const code = board?.path?.code;
     return code && isPathId(code) ? code : null;
@@ -478,7 +429,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const challengesByPath = useMemo(() => {
     const map = new Map<PathId, Challenge[]>();
-    for (const code of ['A', 'B', 'C'] as PathId[]) {
+    for (const code of ['A'] as PathId[]) {
       map.set(code, challengesForPath(board, code));
     }
     return map;
@@ -507,76 +458,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     () => visibleChallenges.filter((c) => c.status === 'solved').map((c) => c.slot),
     [visibleChallenges],
   );
-  const skippedSlots = useMemo(
-    () => visibleChallenges.filter((c) => c.status === 'skipped').map((c) => c.slot),
-    [visibleChallenges],
-  );
-
   const activeChallenge = activeSlot ? bySlot.get(activeSlot) ?? null : null;
-  const briefingChallenge = briefingSlot ? bySlot.get(briefingSlot) ?? activeChallenge : activeChallenge;
 
   const pathScores = useMemo(() => {
     const s = board?.pathScores;
     return {
       pathA: s?.A ?? 0,
-      pathB: s?.B ?? 0,
-      pathC: s?.C ?? 0,
-      // The server's score is the authority: it nets hint spend out and counts
-      // the pathless challenges, neither of which the per-path figures include.
+      // The server's score includes pathless challenges and is authoritative.
       total: board?.score ?? 0,
     };
   }, [board]);
-
-  const getPathPoints = useCallback(
-    (path: PathId) => paths.find((p) => p.code === path)?.points ?? 0,
-    [paths],
-  );
-
-  const isPathComplete = useCallback(
-    (path: PathId) => {
-      const p = paths.find((x) => x.code === path);
-      if (!p) return false;
-      if (p.isCompleted) return true;
-      if (fragments.includes(p.delivers)) return true;
-      return p.total > 0 && p.solved + p.skipped >= p.total;
-    },
-    [paths, fragments],
-  );
-
-  /**
-   * Path lock rules:
-   * 1. Any entered path (isActive or isAttempted) is NEVER locked — challenges remain available to solve.
-   * 2. If team is on an active path that is completed, unattempted paths unlock for free selection.
-   * 3. If active path is NOT complete, unattempted paths are locked from free switch (can switch in-between with penalty).
-   */
-  const isPathLocked = useCallback(
-    (path: PathId) => {
-      const p = paths.find((x) => x.code === path);
-      if (!p) return true;
-      if (p.isActive || p.isAttempted) return false;
-      if (!chosenPath) return true;
-      if (p.isLocked !== undefined) return p.isLocked;
-      const activeP = paths.find((x) => x.code === chosenPath);
-      const activeDone =
-        activeP?.isCompleted ||
-        (activeP && fragments.includes(activeP.delivers)) ||
-        (activeP ? activeP.total > 0 && activeP.solved + activeP.skipped >= activeP.total : false);
-      if (activeDone) return false;
-      return true;
-    },
-    [paths, chosenPath, fragments],
-  );
-
-  /** The next open node on the active path. */
-  const resumeSlot = useMemo(() => {
-    const open = visibleChallenges
-      .filter((c) => c.status === 'open')
-      .sort((a, b) => a.index - b.index);
-    if (open.length > 0) return open[0].slot;
-    return activeSlot;
-  }, [visibleChallenges, activeSlot]);
-
-  const rewardMultiplier = Number(board?.path?.rewardMultiplier ?? '1.00');
 
   const glitch = board?.timeGlitch.active ?? null;
   const glitchEndsAt = glitch ? new Date(glitch.endsAt).getTime() : null;
@@ -654,9 +545,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // -------------------------------------------------------------- routing ----
 
-  const syncHash = useCallback((view: ViewType, slot?: string | null, pathId?: PathId) => {
+  const syncHash = useCallback((view: ViewType, slot?: string | null) => {
     try {
-      const h = viewToHash(view, slot, pathId);
+      const h = viewToHash(view, slot);
       if (window.location.hash !== h) window.location.hash = h;
     } catch {
       /* non-browser env */
@@ -664,19 +555,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const navigateTo = useCallback(
-    (view: ViewType, slot?: string | null, pathId?: PathId) => {
+    (view: ViewType, slot?: string | null) => {
       soundFx.playClick();
-      if (pathId) setViewingPath(pathId);
-      if (slot) {
-        setActiveSlot(slot);
-        const code = slot[0];
-        if (isPathId(code)) setViewingPath(code);
-      }
+      if (slot) setActiveSlot(slot);
       setCurrentView(view);
-      syncHash(view, slot ?? (view === 'CHALLENGE' ? activeSlot : null), pathId ?? viewingPath);
+      syncHash(view, slot ?? (view === 'CHALLENGE' ? activeSlot : null));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
-    [activeSlot, viewingPath, syncHash],
+    [activeSlot, syncHash],
   );
 
   // Deep links and browser back/forward.
@@ -684,13 +570,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (phase !== 'ready' && phase !== 'no-team' && phase !== 'pending' && phase !== 'ended') return;
 
     const applyRoute = (route: ParsedRoute) => {
-      if (route.slot) {
-        setActiveSlot(route.slot);
-        const code = route.slot[0];
-        if (isPathId(code)) setViewingPath(code);
-      } else if (route.pathId) {
-        setViewingPath(route.pathId);
-      }
+      if (route.slot) setActiveSlot(route.slot);
       setCurrentView(route.view);
     };
 
@@ -728,24 +608,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const dismissToast = useCallback(() => setToast(null), []);
-  const dismissNarration = useCallback(() => {
-    soundFx.playClick();
-    setNarrationQueue((q) => q.slice(1));
-  }, []);
-
-  const openBriefing = useCallback((slot: string) => {
-    soundFx.playClick();
-    setBriefingSlot(slot);
-    setShowBriefingModal(true);
-  }, []);
-  const closeBriefing = useCallback(() => {
-    soundFx.playClick();
-    setShowBriefingModal(false);
-  }, []);
-  const toggleTour = useCallback((open?: boolean) => {
-    soundFx.playClick();
-    setTourOpen((prev) => (open === undefined ? !prev : open));
-  }, []);
   const toggleAudio = useCallback(() => setAudioEnabled((a) => !a), []);
 
   // ------------------------------------------------------------ session ----
@@ -809,7 +671,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setBoard(null);
     setEvent(null);
     setActiveSlot(null);
-    setNarrationQueue([]);
     setAuthError(null);
     setPhase('unauthenticated');
     setCurrentView('LOGIN');
@@ -901,31 +762,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [eventId, pathIdFor, refresh, notify, syncHash],
   );
 
-  const switchPath = useCallback(
-    async (code: PathId): Promise<ActionResult> => {
-      const id = pathIdFor(code);
-      if (!eventId || !id) return { success: false, message: 'Path not available.' };
-      setBusy(true);
-      try {
-        const result = await api.switchPath(eventId, id);
-        await refresh();
-        if (result.free) soundFx.playClick();
-        else soundFx.playError();
-        notify(result.free ? 'success' : 'info', `SWITCHED TO PATH ${code}`, result.message);
-        setCurrentView('DASHBOARD');
-        syncHash('DASHBOARD');
-        return { success: true, message: result.message };
-      } catch (error) {
-        const message = errorMessage(error);
-        notify('error', 'SWITCH REFUSED', message);
-        return { success: false, message };
-      } finally {
-        setBusy(false);
-      }
-    },
-    [eventId, pathIdFor, refresh, notify, syncHash],
-  );
-
   // --------------------------------------------------------------- play ----
 
   const submitFlag = useCallback(
@@ -935,7 +771,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!trimmed) return { success: false, message: 'Enter a flag before submitting.' };
 
       // Path challenges carry a slot ("A-07"); the welcome gate and the
-      // convergence final are pathless, so fall back to their title.
+      // Standalone challenges are pathless, so fall back to their title.
       const challenge = visibleChallenges.find((c) => c.id === challengeId) ?? null;
       const standalone = board?.standalone.find((c) => c.id === challengeId) ?? null;
       const label = challenge?.slot ?? standalone?.title ?? 'CHALLENGE';
@@ -969,19 +805,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // The debrief is the reward for solving, and the server only releases
         // it on a correct submission.
-        if (result.postStory && challenge) {
-          setNarrationQueue((q) => [
-            ...q,
-            {
-              id: `${challenge.slot}-post-${Date.now()}`,
-              kind: 'challenge',
-              title: `POST-TRANSMISSION — ${challenge.slot} ${challenge.title}`,
-              speaker: PATH_SKINS[challenge.pathId].lead,
-              subTag: `PATH ${challenge.pathId} · DEBRIEF ${challenge.slot}`,
-              lines: [result.postStory],
-            },
-          ]);
-        }
+        // Story elements removed per user request.
 
         if (result.fragment) {
           notify(
@@ -989,11 +813,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             'FRAGMENT SECURED',
             `${result.fragment.toUpperCase()} is yours. Carry it to the Convergence Terminal.`,
           );
-          const solvedPathCode = (challenge?.pathId ?? chosenPath ?? 'A') as PathId;
-          setPathCompletionPrompt({ pathCode: solvedPathCode, fragment: result.fragment });
         }
 
-        await refresh();
+        // The submission response is authoritative. Refresh the board without
+        // delaying the challenge view's immediate solved feedback.
+        void refresh();
         return {
           success: true,
           message: `${result.message} +${awarded} PTS`,
@@ -1012,60 +836,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [eventId, visibleChallenges, board, refresh, notify],
   );
 
-  const skipChallenge = useCallback(
-    async (challengeId: string): Promise<ActionResult> => {
-      if (!eventId) return { success: false, message: 'No event loaded.' };
-      setBusy(true);
-      try {
-        const result = await api.skipChallenge(eventId, challengeId);
-        await refresh();
-        notify('info', 'CHALLENGE SKIPPED', result.message);
-        return { success: true, message: result.message };
-      } catch (error) {
-        const message = errorMessage(error);
-        notify('error', 'SKIP REFUSED', message);
-        if (isEventClosed(error)) setPhase('ended');
-        return { success: false, message };
-      } finally {
-        setBusy(false);
-      }
-    },
-    [eventId, refresh, notify],
-  );
-
-  const loadHints = useCallback(
-    async (challengeId: string): Promise<Hint[]> => {
-      if (!eventId) return [];
-      try {
-        return toHints(await api.listHints(eventId, challengeId));
-      } catch {
-        return [];
-      }
-    },
-    [eventId],
-  );
-
-  const unlockHint = useCallback(
-    async (challengeId: string, hintId: string): Promise<ActionResult> => {
-      if (!eventId) return { success: false, message: 'No event loaded.' };
-      setBusy(true);
-      try {
-        const hint = await api.unlockHint(eventId, challengeId, hintId);
-        soundFx.playDecrypt();
-        // Hint cost comes off the team's score, so the HUD is now stale.
-        await refresh();
-        return { success: true, message: `Hint decrypted for ${hint.cost} PTS.` };
-      } catch (error) {
-        const message = errorMessage(error);
-        soundFx.playError();
-        return { success: false, message };
-      } finally {
-        setBusy(false);
-      }
-    },
-    [eventId, refresh],
-  );
-
   const loadScoreboard = useCallback(async () => {
     if (!eventId) return;
     try {
@@ -1078,8 +848,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [eventId, team]);
 
   // ------------------------------------------------------------- exports ----
-
-  const setActivePathCb = useCallback((path: PathId) => setViewingPath(path), []);
 
   const value: GameContextType = {
     phase,
@@ -1108,38 +876,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refresh,
     paths,
     chosenPath,
-    activePath: viewingPath,
-    setActivePath: setActivePathCb,
     getPathChallenges,
     visibleChallenges,
     activeChallenge,
     activeChallengeId: activeSlot,
     solvedSlots,
-    skippedSlots,
     score: board?.score ?? 0,
     rank: board?.rank ?? null,
     pathScores,
-    getPathPoints,
-    skips: board?.skips ?? { used: 0, remaining: 0, quota: 0 },
-    rewardMultiplier,
-    fragments,
     welcome: welcomeChallenge(board),
-    convergence: convergenceChallenge(board),
-    isPathComplete,
-    isPathLocked,
-    pathCompletionPrompt,
-    closeCompletionPrompt,
-    resumeSlot,
     formattedTimer,
     glitchEndsAt,
     glitchLabel: glitch?.label ?? null,
     glitchSample,
     choosePath,
-    switchPath,
     submitFlag,
-    skipChallenge,
-    loadHints,
-    unlockHint,
     scoreboard,
     scoreboardFrozen,
     loadScoreboard,
@@ -1148,16 +899,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     toast,
     notify,
     dismissToast,
-    narrationQueue,
-    dismissNarration,
-    briefingChallenge,
-    showBriefingModal,
-    openBriefing,
-    closeBriefing,
-    tourOpen,
-    toggleTour,
-    storyOpen,
-    setStoryOpen,
     audioEnabled,
     toggleAudio,
   };

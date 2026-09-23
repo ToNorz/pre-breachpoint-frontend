@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: breachpoint
       POSTGRES_DB: breachpoint
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-breachpoint}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a unique POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
     restart: "no"
     command: ["bun", "run", "db:migrate"]
     environment:
-      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD:-breachpoint}@postgres:5432/breachpoint
+      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD:?Set a unique POSTGRES_PASSWORD in .env}@postgres:5432/breachpoint
     depends_on:
       postgres:
         condition: service_healthy
@@ -33,10 +33,10 @@ services:
     restart: "no"
     command: ["bun", "run", "db:seed"]
     environment:
-      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD:-breachpoint}@postgres:5432/breachpoint
-      ADMIN_1_PASSWORD: ${ADMIN_1_PASSWORD:-AdminPassword2026!}
-      ADMIN_2_PASSWORD: ${ADMIN_2_PASSWORD:-OpsPassword2026!}
-      ADMIN_3_PASSWORD: ${ADMIN_3_PASSWORD:-ControlPassword2026!}
+      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD:?Set a unique POSTGRES_PASSWORD in .env}@postgres:5432/breachpoint
+      ADMIN_1_PASSWORD: ${ADMIN_1_PASSWORD:?Set a unique ADMIN_1_PASSWORD in .env}
+      ADMIN_2_PASSWORD: ${ADMIN_2_PASSWORD:?Set a unique ADMIN_2_PASSWORD in .env}
+      ADMIN_3_PASSWORD: ${ADMIN_3_PASSWORD:?Set a unique ADMIN_3_PASSWORD in .env}
       AUTO_PUBLISH: ${AUTO_PUBLISH:-true}
       EVENT_HOURS: ${EVENT_HOURS:-48}
     depends_on:
@@ -50,9 +50,9 @@ services:
     environment:
       PORT: "8080"
       HOST: 0.0.0.0
-      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD:-breachpoint}@postgres:5432/breachpoint
-      JWT_SECRET: ${JWT_SECRET:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9_breachpoint_secret_32chars!}
-      FRONTEND_URL: ${FRONTEND_ORIGIN:-http://localhost:32081,http://localhost:3000}
+      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD:?Set a unique POSTGRES_PASSWORD in .env}@postgres:5432/breachpoint
+      JWT_SECRET: ${JWT_SECRET:?Set a random JWT_SECRET in .env}
+      FRONTEND_URL: ${FRONTEND_ORIGIN:?Set the exact frontend origin in .env}
     ports:
       - "127.0.0.1:32082:8080"
     depends_on:

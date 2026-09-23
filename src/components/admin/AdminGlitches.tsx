@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { api, AdminTimeGlitch } from '../../services/api';
 import { AdminNav } from './AdminNav';
+import { CornerTicks } from '../LoginForm';
 
 export const AdminGlitches: React.FC = () => {
   const { adminEvent, notify } = useGame();
@@ -87,7 +88,7 @@ export const AdminGlitches: React.FC = () => {
   return (
     <>
       <AdminNav />
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-5xl mx-auto px-6 py-8 scan-faint">
         {/* Main Controls Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
@@ -136,12 +137,13 @@ export const AdminGlitches: React.FC = () => {
 
         {/* Status Card Banner */}
         <div
-          className={`mt-6 p-5 border transition-all ${
+          className={`mt-6 p-5 border transition-all relative ${
             isGlitchActive
               ? 'bg-[#5ED6E3]/5 border-[#5ED6E3]/40 shadow-[0_0_20px_rgba(94,214,227,0.1)]'
               : 'bg-[#0B0E16] border-[#1E2536]'
           }`}
         >
+          <CornerTicks color={isGlitchActive ? '#5ED6E3' : '#5A6379'} />
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <div className="flex items-center gap-2">

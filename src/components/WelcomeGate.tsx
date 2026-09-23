@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { DIFFICULTY_META } from '../services/backend';
+import { safeResourceUrl } from '../utils/safeResourceUrl';
 
 /**
  * The welcome challenge, played inline on the dashboard.
@@ -13,6 +14,7 @@ import { DIFFICULTY_META } from '../services/backend';
 export const WelcomeGate: React.FC = () => {
   const { welcome, submitFlag, busy } = useGame();
   const [flag, setFlag] = useState('');
+  const resourceUrl = safeResourceUrl(welcome?.resourceLink);
   const [status, setStatus] = useState<{ type: 'idle' | 'error'; message: string }>({
     type: 'idle',
     message: '',
@@ -38,7 +40,7 @@ export const WelcomeGate: React.FC = () => {
   if (solved) {
     return (
       <section className="mb-4 border border-[#5ED6E3]/40 bg-[#5ED6E3]/[0.08] px-5 py-3 text-[12px] tracking-[0.15em] text-[#5ED6E3] font-semibold flex items-center gap-2">
-        <span>✓</span> <span>{welcome.title.toUpperCase()} — DECODED. ALL THREE PATHS ARE OPEN TO YOU.</span>
+        <span>✓</span> <span>{welcome.title.toUpperCase()} — DECODED. THE CTF IS OPEN TO YOU.</span>
       </section>
     );
   }
@@ -47,7 +49,7 @@ export const WelcomeGate: React.FC = () => {
     <section className="mb-4 border border-[#5ED6E3]/50 bg-[#0A0D15]/90 px-5 py-4 shadow-[0_0_20px_rgba(94,214,227,0.1)]">
       <div className="text-[11px] font-bold tracking-[0.25em] text-[#5ED6E3] flex items-center gap-2">
         <span className="w-1.5 h-1.5 rounded-full bg-[#5ED6E3] shadow-[0_0_6px_#5ED6E3]" />
-        <span>OPEN THIS FIRST // PATH SELECTION IS SEALED UNTIL IT FALLS</span>
+        <span>OPEN THIS FIRST // THE CTF IS SEALED UNTIL IT FALLS</span>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <span className="font-display text-lg font-bold text-[#F2F5FA]">{welcome.title}</span>
@@ -63,16 +65,16 @@ export const WelcomeGate: React.FC = () => {
         {welcome.objective}
       </p>
 
-      {welcome.resourceLink && (
+        {resourceUrl && (
         <div className="mt-3">
           <a
-            href={welcome.resourceLink}
+            href={resourceUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-3 py-1.5 text-[10.5px] font-mono font-bold tracking-[0.15em] border border-[#5ED6E3]/60 bg-[#5ED6E3]/15 text-[#5ED6E3] hover:bg-[#5ED6E3]/25 transition-all cursor-pointer"
           >
             <span>
-              {welcome.resourceLink.includes('drive.google')
+              {resourceUrl.includes('drive.google')
                 ? '⬇ DOWNLOAD ATTACHMENT'
                 : '↗ ACCESS CHALLENGE TARGET'}
             </span>

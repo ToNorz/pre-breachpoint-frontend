@@ -139,11 +139,9 @@ export const AdminChallenges: React.FC = () => {
       if (filter !== 'all' && c.state !== filter) return false;
       // Path filter
       if (pathFilter === 'A' && !slot.startsWith('A')) return false;
-      if (pathFilter === 'B' && !slot.startsWith('B')) return false;
-      if (pathFilter === 'C' && !slot.startsWith('C')) return false;
       if (
         pathFilter === 'STANDALONE' &&
-        (slot.startsWith('A') || slot.startsWith('B') || slot.startsWith('C'))
+        slot.startsWith('A')
       )
         return false;
       // Search query
@@ -193,7 +191,7 @@ export const AdminChallenges: React.FC = () => {
   return (
     <>
       <AdminNav />
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="scan-faint max-w-6xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <div className="text-[9px] tracking-[0.3em] text-[#E0A83E]">■ CHALLENGE ARCHIVE</div>
@@ -217,7 +215,7 @@ export const AdminChallenges: React.FC = () => {
                 setEditId(null);
                 setHintsFor(null);
               }}
-              className="px-5 py-2 bg-[#5ED6E3] text-[#06232A] text-[11px] font-bold tracking-[0.2em] cursor-pointer hover:brightness-110"
+              className="px-5 py-2 bg-[#5ED6E3] text-[#06232A] text-[11px] font-bold tracking-[0.2em] cursor-pointer hover:brightness-110 shadow-[0_0_20px_rgba(94,214,227,0.2)]"
             >
               + CREATE CHALLENGE
             </button>
@@ -238,18 +236,13 @@ export const AdminChallenges: React.FC = () => {
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3 bg-[#0B0E16] border border-[#1E2536] p-3">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[9px] tracking-[0.25em] text-[#5A6379] mr-1">PATH:</span>
-            {(['all', 'A', 'B', 'C', 'STANDALONE'] as const).map((p) => {
+            {(['all', 'A', 'STANDALONE'] as const).map((p) => {
               const label = p === 'all' ? 'ALL' : p === 'STANDALONE' ? 'SPECIAL' : `PATH ${p}`;
               const count =
                 p === 'all'
                   ? challenges.length
                   : p === 'STANDALONE'
-                  ? challenges.filter(
-                      (c) =>
-                        !getChallengeSlot(c).startsWith('A') &&
-                        !getChallengeSlot(c).startsWith('B') &&
-                        !getChallengeSlot(c).startsWith('C')
-                    ).length
+                  ? challenges.filter((c) => !getChallengeSlot(c).startsWith('A')).length
                   : challenges.filter((c) => getChallengeSlot(c).startsWith(p)).length;
               return (
                 <button
@@ -259,10 +252,6 @@ export const AdminChallenges: React.FC = () => {
                     pathFilter === p
                       ? p === 'A'
                         ? 'bg-[#5ED6E3]/20 text-[#5ED6E3] border-[#5ED6E3]'
-                        : p === 'B'
-                        ? 'bg-[#E84D7E]/20 text-[#E84D7E] border-[#E84D7E]'
-                        : p === 'C'
-                        ? 'bg-[#E0A83E]/20 text-[#E0A83E] border-[#E0A83E]'
                         : 'bg-[#B78AF7]/20 text-[#B78AF7] border-[#B78AF7]'
                       : 'bg-transparent text-[#5A6379] border-transparent hover:text-[#8B93A9]'
                   }`}
@@ -446,8 +435,8 @@ export const AdminChallenges: React.FC = () => {
 
         {/* Delete Confirmation Modal */}
         {confirmDeleteId && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-            <div className="max-w-md w-full border border-[#E84D7E]/60 bg-[#0B0E16] p-6 text-left">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="relative max-w-md w-full border border-[#E84D7E]/60 bg-[#0B0E16] p-6 text-left">
               <div className="text-[10px] tracking-[0.3em] text-[#E84D7E]">CONFIRM CHALLENGE DELETION</div>
               <h3 className="mt-2 font-display text-lg text-[#F2F5FA]">
                 Delete "{challenges.find((c) => c.id === confirmDeleteId)?.title}"?
@@ -585,7 +574,7 @@ const CreateChallengeForm: React.FC<{
       onClick={onCancel}
     >
       <div
-        className="max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-[#5ED6E3]/60 bg-[#0B0E16] p-6 shadow-2xl"
+        className="relative max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-[#5ED6E3]/60 bg-[#0B0E16] p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between pb-3 border-b border-[#1E2536]">
@@ -597,7 +586,7 @@ const CreateChallengeForm: React.FC<{
             onClick={onCancel}
             className="text-[12px] text-[#5A6379] hover:text-[#F2F5FA] px-2 py-1 cursor-pointer font-mono"
           >
-            ESC / CLOSE ×
+            [X]
           </button>
         </div>
         <form onSubmit={submit} className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -625,7 +614,7 @@ const CreateChallengeForm: React.FC<{
             <button
               type="submit"
               disabled={busy}
-              className="px-5 py-2.5 bg-[#5ED6E3] text-[#06232A] text-[11px] font-bold tracking-[0.2em] cursor-pointer disabled:opacity-40 hover:brightness-110"
+              className="px-5 py-2.5 bg-[#5ED6E3] text-[#06232A] text-[11px] font-bold tracking-[0.2em] cursor-pointer disabled:opacity-40 hover:brightness-110 shadow-[0_0_20px_rgba(94,214,227,0.2)]"
             >
               {busy ? 'CREATING…' : 'CREATE CHALLENGE →'}
             </button>
@@ -687,7 +676,7 @@ const EditChallengeForm: React.FC<{
       onClick={onCancel}
     >
       <div
-        className="max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-[#E0A83E]/60 bg-[#0B0E16] p-6 shadow-2xl"
+        className="relative max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-[#E0A83E]/60 bg-[#0B0E16] p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between pb-3 border-b border-[#1E2536]">
@@ -708,7 +697,7 @@ const EditChallengeForm: React.FC<{
             onClick={onCancel}
             className="text-[12px] text-[#5A6379] hover:text-[#F2F5FA] px-2 py-1 cursor-pointer font-mono"
           >
-            ESC / CLOSE ×
+            [X]
           </button>
         </div>
         <form onSubmit={submit} className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -742,7 +731,7 @@ const EditChallengeForm: React.FC<{
             <button
               type="submit"
               disabled={busy}
-              className="px-5 py-2.5 bg-[#5ED6E3] text-[#06232A] text-[11px] font-bold tracking-[0.2em] cursor-pointer disabled:opacity-40 hover:brightness-110"
+              className="px-5 py-2.5 bg-[#5ED6E3] text-[#06232A] text-[11px] font-bold tracking-[0.2em] cursor-pointer disabled:opacity-40 hover:brightness-110 shadow-[0_0_20px_rgba(94,214,227,0.2)]"
             >
               {busy ? 'SAVING…' : 'SAVE CHANGES →'}
             </button>
@@ -818,7 +807,7 @@ const HintManager: React.FC<{
       onClick={onClose}
     >
       <div
-        className="max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#E0A83E]/60 bg-[#0B0E16] p-6 shadow-2xl"
+        className="relative max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#E0A83E]/60 bg-[#0B0E16] p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between pb-3 border-b border-[#1E2536]">
@@ -841,7 +830,7 @@ const HintManager: React.FC<{
             onClick={onClose}
             className="text-[12px] text-[#5A6379] hover:text-[#D5DBE7] px-2 py-1 cursor-pointer font-mono"
           >
-            ESC / CLOSE ×
+            [X]
           </button>
         </div>
         {loading ? (
@@ -871,7 +860,7 @@ const HintManager: React.FC<{
               <button
                 type="submit"
                 disabled={busy}
-                className="px-5 py-2 bg-[#5ED6E3] text-[#06232A] text-[10px] font-bold tracking-[0.2em] cursor-pointer disabled:opacity-40 mb-0.5 hover:brightness-110"
+                className="px-5 py-2 bg-[#5ED6E3] text-[#06232A] text-[10px] font-bold tracking-[0.2em] cursor-pointer disabled:opacity-40 mb-0.5 hover:brightness-110 shadow-[0_0_20px_rgba(94,214,227,0.2)]"
               >
                 ADD HINT
               </button>
@@ -935,7 +924,7 @@ const CategoryManager: React.FC<{
         <button
           type="submit"
           disabled={busy}
-          className="px-4 py-2 bg-[#5ED6E3] text-[#06232A] text-[10px] font-bold tracking-[0.2em] cursor-pointer disabled:opacity-40 mb-0.5 hover:brightness-110"
+          className="px-4 py-2 bg-[#5ED6E3] text-[#06232A] text-[10px] font-bold tracking-[0.2em] cursor-pointer disabled:opacity-40 mb-0.5 hover:brightness-110 shadow-[0_0_20px_rgba(94,214,227,0.2)]"
         >
           ADD
         </button>

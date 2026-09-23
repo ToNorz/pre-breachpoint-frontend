@@ -3,8 +3,7 @@ import { useGame } from '../context/GameContext';
 
 export const StatusPanel: React.FC = () => {
   const {
-    teamName, formattedTimer, score, rank, solvedSlots, skips,
-    rewardMultiplier, setStoryOpen, board,
+    teamName, formattedTimer, score, rank, solvedSlots, board,
   } = useGame();
 
   const solvedTotal = board?.solveCount ?? solvedSlots.length;
@@ -24,17 +23,9 @@ export const StatusPanel: React.FC = () => {
             </span>
           )}
           <span className="text-[#A6B2C8]">SOLVED <b className="text-[#F2F5FA] font-bold text-[12.5px]">{solvedTotal}</b></span>
-          {skips.quota > 0 && (
-            <span className="text-[#A6B2C8]">SKIPS <b className="text-[#F2F5FA] font-bold">{skips.remaining}/{skips.quota}</b></span>
-          )}
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <button
-            onClick={() => setStoryOpen(true)}
-            className="text-[#5ED6E3] hover:text-[#7CE3EE] font-bold tracking-[0.2em] transition-colors cursor-pointer"
-          >
-            [ SHOW STORY ]
-          </button>
+
         </div>
       </div>
     </div>

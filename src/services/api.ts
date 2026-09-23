@@ -6,10 +6,9 @@
  * translation between backend shapes and what the UI renders lives in
  * `services/backend.ts`.
  *
- * Auth is a Bearer token, not a cookie: the token is held in memory and
- * mirrored to localStorage so a refresh doesn't log the player out. It is
- * deliberately not sent cross-origin as a credential, which is why the backend
- * runs CORS without `credentials`.
+ * Auth uses a bearer token held in memory for this page session. The backend
+ * uses the Authorization header, so the token is never persisted in browser
+ * storage or sent as a cross-origin cookie.
  */
 
 function normalizeApiBase(raw: string | undefined): string {
@@ -32,25 +31,15 @@ export const API_BASE: string = normalizeApiBase(
 export const EVENT_SLUG: string =
   (import.meta.env.VITE_EVENT_SLUG as string | undefined) ?? 'breachpoint-2026-r1';
 
-const TOKEN_KEY = 'breachpoint_token';
+/** Set VITE_USE_MOCK_API=true for an in-memory, self-contained CTF demo. */
+export const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true';
 
 let token: string | null = null;
-try {
-  token = localStorage.getItem(TOKEN_KEY);
-} catch {
-  /* private mode / storage blocked: session lasts until reload */
-}
 
 export const getToken = () => token;
 
 export function setToken(next: string | null) {
   token = next;
-  try {
-    if (next) localStorage.setItem(TOKEN_KEY, next);
-    else localStorage.removeItem(TOKEN_KEY);
-  } catch {
-    /* in-memory only */
-  }
 }
 
 /**
@@ -169,7 +158,7 @@ export interface ApiTeam {
   members?: ApiTeamMember[];
 }
 
-export type ChallengeStatus = 'solved' | 'skipped' | 'open';
+export type ChallengeStatus = 'solved' | 'open';
 
 export interface ApiBoardChallenge {
   id: string;
@@ -189,11 +178,7 @@ export interface ApiBoardChallenge {
   author: string | null;
   sequence: number;
   tier: 'past' | 'present' | 'future';
-  isPathFinal: boolean;
   status: ChallengeStatus;
-  preStory: string;
-  /** Withheld by the server until the challenge is solved. */
-  postStory: string | null;
   resourceLink?: string | null;
 }
 
@@ -211,10 +196,7 @@ export interface ApiStandaloneChallenge {
   author: string | null;
   status: ChallengeStatus;
   resourceLink?: string | null;
-  /**
-   * True for the convergence final (gated on all three fragments), false for
-   * the welcome gate. Derived server-side from the prerequisite graph.
-   */
+  /** True for a standalone final challenge, false for the welcome gate. */
   isFinal: boolean;
 }
 
@@ -233,7 +215,6 @@ export interface ApiBoardPath {
   rewardMultiplier: string | null;
   entryReason: string | null;
   solved: number;
-  skipped: number;
   total: number;
   points: number;
   finalChallenge?: {
@@ -263,27 +244,16 @@ export interface ApiTimeGlitch {
   next: { id: string; label: string | null; startsAt: string; endsAt: string } | null;
 }
 
-/** What a team closed on a path, by sequence — including paths it has left. */
-export interface ApiPathHistory {
-  pathId: string;
-  code: string;
-  solved: number[];
-  skipped: number[];
-}
-
 export interface ApiBoard {
   team: { id: string; name: string };
   score: number;
   rank: number | null;
   solveCount: number;
-  pathScores: { A: number; B: number; C: number; standalone: number };
+  pathScores: { A: number; standalone: number };
   paths: ApiBoardPath[];
   path: ApiActivePath | null;
   challenges: ApiBoardChallenge[];
-  history: ApiPathHistory[];
   standalone: ApiStandaloneChallenge[];
-  skips: { used: number; remaining: number; quota: number };
-  fragments: ('who' | 'how' | 'why')[];
   timeGlitch: ApiTimeGlitch;
 }
 
@@ -296,53 +266,8 @@ export interface ApiSubmitResult {
   solveOrder?: number;
   firstBlood?: boolean;
   timeGlitch?: { id: string; label: string | null } | null;
-  postStory?: string | null;
   fragment?: 'who' | 'how' | 'why' | null;
   revealed?: string[];
-}
-
-export interface ApiSkipResult {
-  skipped: string;
-  skipsUsed: number;
-  skipsRemaining: number;
-  rewardMultiplier: string;
-  revealed: string[];
-  message: string;
-}
-
-export interface ApiSpinWheelStatus {
-  totalQuota: number;
-  spinsUsed: number;
-  spinsRemaining: number;
-  spunChallengeIds?: string[];
-  logs: Array<{
-    id: string;
-    segment: string;
-    challengeId: string;
-    isFreeSpin: boolean;
-    awardedData?: Record<string, unknown> | null;
-    createdAt: string;
-  }>;
-}
-
-export interface ApiSpinWheelResult {
-  logId: string;
-  segment: 'GAME_1' | 'BETTER_LUCK' | 'GAME_2' | 'FREE_HINT' | 'GAME_3' | 'FREE_SPIN';
-  label: string;
-  sectorIndex: number;
-  isFreeSpin: boolean;
-  totalQuota: number;
-  spinsUsed: number;
-  spinsRemaining: number;
-  awarded?: {
-    type?: string;
-    game?: string;
-    title?: string;
-    message?: string;
-    hintId?: string | null;
-    hintBody?: string;
-    hintCostSaved?: number;
-  } | null;
 }
 
 export interface AdminSpinWheelLogItem {
@@ -388,17 +313,6 @@ export interface AdminSpinWheelResponse {
   logs: AdminSpinWheelLogItem[];
 }
 
-export interface ApiHint {
-  id: string;
-  challengeId: string;
-  cost: number;
-  sortOrder: number;
-  requiresHintId: string | null;
-  isUnlocked: boolean;
-  /** Null until this team has paid for it. */
-  body: string | null;
-}
-
 export interface ApiScoreboardEntry {
   teamId: string;
   displayName: string;
@@ -413,28 +327,6 @@ export interface ApiScoreboard {
   frozen: boolean;
   frozenAt: string | null;
   entries: ApiScoreboardEntry[];
-}
-
-export interface ApiPathList {
-  welcomeSolved: boolean;
-  canSelect: boolean;
-  paths: {
-    id: string;
-    code: string;
-    name: string;
-    delivers: 'who' | 'how' | 'why';
-    introNarration: string;
-    isActive: boolean;
-    isAvailable: boolean;
-    rewardMultiplier: string | null;
-  }[];
-}
-
-export interface ApiSwitchResult {
-  path: { id: string; code: string; name: string };
-  free: boolean;
-  solvesInPreviousPath: number;
-  message: string;
 }
 
 // --------------------------------------------------------- admin types ----
@@ -510,58 +402,135 @@ export interface PatchChallengeBody {
 
 // ------------------------------------------------------------ endpoints ----
 
+import { mockUser, mockEvents, mockBoard, mockCategories, mockChallengeFlags } from '@mock-data';
+
+const MOCK_TOKEN = 'breachpoint-mock-session';
+const copy = <T,>(value: T): T => structuredClone(value);
+let mockSessionUser: AuthUser | null = null;
+let mockTeamState: ApiTeam | null = null;
+let mockBoardState: ApiBoard = copy(mockBoard);
+
+function mockAuth(username: string): AuthResponse {
+  const cleanName = username.trim() || mockUser.username;
+  const user = { ...mockUser, username: cleanName, displayName: cleanName };
+  mockSessionUser = user;
+  return { token: MOCK_TOKEN, user };
+}
+
+function mockCreateTeam(eventId: string, name: string): ApiTeam {
+  const team: ApiTeam = {
+    id: 'mock-team',
+    name: name.trim() || 'Local Operatives',
+    joinCode: 'MOCK42',
+    eventId,
+    myRole: 'captain',
+  };
+  mockTeamState = team;
+  mockBoardState.team = { id: team.id, name: team.name };
+  return copy(team);
+}
+
+function mockSubmitFlag(challengeId: string, flag: string): ApiSubmitResult {
+  const challenge = mockBoardState.challenges.find((item) => item.id === challengeId);
+  if (!challenge) return { verdict: 'incorrect', message: 'Mock challenge not found.' };
+  if (challenge.status === 'solved') {
+    return { verdict: 'duplicate', message: 'Your team already solved this challenge.' };
+  }
+  if (mockChallengeFlags[challengeId] !== flag.trim()) {
+    return { verdict: 'incorrect', message: 'That flag is incorrect. Check the mock challenge objective.' };
+  }
+
+  const pointsAwarded = challenge.currentPoints * Number(mockBoardState.path?.rewardMultiplier ?? 1);
+  challenge.status = 'solved';
+  challenge.solves += 1;
+  mockBoardState.score += pointsAwarded;
+  mockBoardState.solveCount += 1;
+  mockBoardState.rank = 1;
+  mockBoardState.pathScores.A += pointsAwarded;
+  const path = mockBoardState.paths.find((item) => item.code === challenge.pathCode);
+  if (path) {
+    path.solved += 1;
+    path.points += pointsAwarded;
+    path.isCompleted = path.solved >= path.total;
+  }
+  if (mockBoardState.path) mockBoardState.path.solved += 1;
+  return {
+    verdict: 'correct',
+    message: 'Mock flag accepted.',
+    basePoints: challenge.currentPoints,
+    multiplier: mockBoardState.path?.rewardMultiplier ?? '1.00',
+    pointsAwarded,
+    solveOrder: mockBoardState.solveCount,
+    firstBlood: challenge.solves === 1,
+  };
+}
+
 export const api = {
   // auth
   signup: (username: string, email: string, password: string) =>
-    post<AuthResponse>('/auth/signup', { username, email, password }),
+    USE_MOCK_API ? Promise.resolve(mockAuth(username)) : post<AuthResponse>('/auth/signup', { username, email, password }),
   login: (email: string, password: string) =>
-    post<AuthResponse>('/auth/login', { email, password }),
-  me: () => get<AuthUser>('/auth/me'),
+    USE_MOCK_API ? Promise.resolve(mockAuth(email.split('@')[0])) : post<AuthResponse>('/auth/login', { email, password }),
+  me: async () => {
+    if (!USE_MOCK_API) return get<AuthUser>('/auth/me');
+    if (!token) throw new ApiError(401, 'Sign in to continue.');
+    return mockSessionUser ?? mockUser;
+  },
 
   // events
-  listEvents: () => get<ApiEvent[]>('/events'),
+  listEvents: async () => USE_MOCK_API ? copy(mockEvents) : get<ApiEvent[]>('/events'),
 
   // categories — names for the ids the board sends
-  listCategories: () => get<{ id: number; name: string }[]>('/categories'),
+  listCategories: async () => USE_MOCK_API ? copy(mockCategories) : get<{ id: number; name: string }[]>('/categories'),
 
   // teams
   createTeam: (eventId: string, name: string) =>
-    post<ApiTeam>(`/events/${eventId}/teams`, { name }),
+    USE_MOCK_API ? Promise.resolve(mockCreateTeam(eventId, name)) : post<ApiTeam>(`/events/${eventId}/teams`, { name }),
   joinTeam: (eventId: string, name: string, joinCode: string) =>
-    post<ApiTeam>(`/events/${eventId}/teams/join`, { name, joinCode }),
-  myTeam: (eventId: string) => get<ApiTeam>(`/events/${eventId}/teams/me`),
+    USE_MOCK_API
+      ? Promise.resolve(mockCreateTeam(eventId, name || `Joined ${joinCode.toUpperCase()}`))
+      : post<ApiTeam>(`/events/${eventId}/teams/join`, { name, joinCode }),
+  myTeam: async (eventId: string) => {
+    if (!USE_MOCK_API) return get<ApiTeam>(`/events/${eventId}/teams/me`);
+    if (!mockTeamState) throw new ApiError(404, 'No team has been created in the mock session.');
+    return copy(mockTeamState);
+  },
 
   // the event page, in one call
-  board: (eventId: string) => get<ApiBoard>(`/events/${eventId}/board`),
+  board: async (eventId: string) => USE_MOCK_API ? copy(mockBoardState) : get<ApiBoard>(`/events/${eventId}/board`),
 
   // paths
-  listPaths: (eventId: string) => get<ApiPathList>(`/events/${eventId}/paths`),
-  selectPath: (eventId: string, pathId: string) =>
-    post<unknown>(`/events/${eventId}/paths/select`, { pathId }),
-  switchPath: (eventId: string, pathId: string) =>
-    post<ApiSwitchResult>(`/events/${eventId}/paths/switch`, { pathId }),
-
+  selectPath: (eventId: string, pathId: string) => {
+    if (!USE_MOCK_API) return post<unknown>(`/events/${eventId}/paths/select`, { pathId });
+    if (!mockBoardState.paths.some((path) => path.id === pathId)) {
+      return Promise.reject(new ApiError(404, 'Mock path not found.'));
+    }
+    return Promise.resolve(undefined);
+  },
   // play
   submitFlag: (eventId: string, challengeId: string, flag: string) =>
-    post<ApiSubmitResult>(`/events/${eventId}/challenges/${challengeId}/submit`, { flag }),
-  skipChallenge: (eventId: string, challengeId: string) =>
-    post<ApiSkipResult>(`/events/${eventId}/skips`, { challengeId }),
-
-  // hints
-  listHints: (eventId: string, challengeId: string) =>
-    get<ApiHint[]>(`/events/${eventId}/challenges/${challengeId}/hints`),
-  unlockHint: (eventId: string, challengeId: string, hintId: string) =>
-    post<ApiHint>(`/events/${eventId}/challenges/${challengeId}/hints/${hintId}/unlock`),
-
+    USE_MOCK_API
+      ? Promise.resolve(mockSubmitFlag(challengeId, flag))
+      : post<ApiSubmitResult>(`/events/${eventId}/challenges/${challengeId}/submit`, { flag }),
   // board
-  scoreboard: (eventId: string) => get<ApiScoreboard>(`/events/${eventId}/scoreboard`),
-  timeGlitch: (eventId: string) => get<ApiTimeGlitch>(`/events/${eventId}/time-glitch`),
-
-  // spin wheel
-  getSpinWheelStatus: (eventId: string) =>
-    get<ApiSpinWheelStatus>(`/events/${eventId}/spin-wheel`),
-  spinWheel: (eventId: string, challengeId: string) =>
-    post<ApiSpinWheelResult>(`/events/${eventId}/spin-wheel/spin`, { challengeId }),
+  scoreboard: (eventId: string) => USE_MOCK_API
+    ? Promise.resolve({
+      frozen: false,
+      frozenAt: null,
+      entries: [{
+        teamId: mockBoardState.team.id,
+        displayName: mockBoardState.team.name,
+        isSolo: false,
+        score: mockBoardState.score,
+        solveCount: mockBoardState.solveCount,
+        lastSolveAt: null,
+        rank: 1,
+      }],
+    })
+    : get<ApiScoreboard>(`/events/${eventId}/scoreboard`),
+  timeGlitch: (eventId: string) => USE_MOCK_API
+    ? Promise.resolve(copy(mockBoardState.timeGlitch))
+    : get<ApiTimeGlitch>(`/events/${eventId}/time-glitch`),
 
   // ---- admin ----
 
@@ -635,4 +604,3 @@ export const api = {
   adminGetSpinWheelLogs: (eventId: string) =>
     get<AdminSpinWheelResponse>(`/admin/events/${eventId}/spin-wheel/logs`),
 };
-

@@ -12,8 +12,10 @@ COPY . .
 # Build-time environment variables for Vite
 ARG VITE_API_BASE_URL=/
 ARG VITE_EVENT_SLUG=breachpoint-2026-r1
+ARG VITE_USE_MOCK_API=false
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_EVENT_SLUG=$VITE_EVENT_SLUG
+ENV VITE_USE_MOCK_API=$VITE_USE_MOCK_API
 
 # Build the production bundle
 RUN bun run build
@@ -22,6 +24,7 @@ RUN bun run build
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY security-headers.conf /etc/nginx/security-headers.conf
 
 EXPOSE 3000
 

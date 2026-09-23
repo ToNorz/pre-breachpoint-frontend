@@ -12,16 +12,10 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminEvents } from './components/admin/AdminEvents';
 import { AdminChallenges } from './components/admin/AdminChallenges';
 import { AdminGlitches } from './components/admin/AdminGlitches';
-import { NodeMap } from './components/NodeMap';
-import { PathTrail } from './components/PathTrail';
+
 import { ChallengeView } from './components/ChallengeView';
-import { ConvergenceTerminal } from './components/ConvergenceTerminal';
+
 import { LeaderboardView } from './components/LeaderboardView';
-import { BriefingModal } from './components/BriefingModal';
-import { PathCompletionModal } from './components/PathCompletionModal';
-import { MainStoryModal } from './components/MainStoryModal';
-import { StoryNarrationModal } from './components/StoryNarrationModal';
-import { TourModal } from './components/TourModal';
 import { ToastBanner } from './components/ToastBanner';
 import { TimeGlitch } from './components/TimeGlitch';
 
@@ -92,7 +86,6 @@ const AppContent: React.FC = () => {
     return (
       <Shell>
         <GateView />
-        <TourModal />
         <ToastBanner />
       </Shell>
     );
@@ -114,7 +107,6 @@ const AppContent: React.FC = () => {
     return (
       <Shell>
         <LandingView />
-        <TourModal />
         <ToastBanner />
       </Shell>
     );
@@ -166,10 +158,9 @@ const AppContent: React.FC = () => {
   const renderCurrentView = () => {
     switch (currentView) {
       case 'TEAM': return <TeamView />;
-      case 'MAP': return <NodeMap />;
-      case 'TRAIL': return <PathTrail />;
+
       case 'CHALLENGE': return <ChallengeView />;
-      case 'CONVERGENCE': return <ConvergenceTerminal />;
+
       case 'BOARD': return <LeaderboardView />;
       default: return <DashboardView />;
     }
@@ -182,11 +173,6 @@ const AppContent: React.FC = () => {
         <StatusPanel />
         <main className="flex-1 flex flex-col">{renderCurrentView()}</main>
       </div>
-      <BriefingModal />
-      <PathCompletionModal />
-      <MainStoryModal />
-      <StoryNarrationModal />
-      <TourModal />
       <ToastBanner />
       {/* Glitch windows are scheduled server-side and arrive on the board. When
           one closes, re-read it: decay is live again and every price changes. */}

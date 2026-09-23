@@ -75,7 +75,7 @@ export const AdminTeams: React.FC = () => {
   return (
     <>
       <AdminNav />
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-8 scan-faint">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <div className="text-[9px] tracking-[0.3em] text-[#E0A83E]">■ TEAM & ROSTER MANAGER</div>
@@ -87,13 +87,23 @@ export const AdminTeams: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <input
-              type="text"
-              placeholder="Search teams or operatives…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="bg-[#0E1220] border border-[#1E2536] px-3 py-2 text-[11px] text-[#D5DBE7] placeholder-[#5A6379] outline-none focus:border-[#5ED6E3] w-64"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search teams or operatives…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="bg-[#0E1220] border border-[#1E2536] px-3 py-2 text-[11px] text-[#D5DBE7] placeholder-[#5A6379] outline-none focus:border-[#5ED6E3] w-64 pr-7"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[#5A6379] hover:text-[#F2F5FA] text-[12px] cursor-pointer"
+                >
+                  ×
+                </button>
+              )}
+            </div>
             <button
               onClick={() => void load()}
               disabled={loading}
@@ -206,7 +216,7 @@ export const AdminTeams: React.FC = () => {
 
         {/* Delete Confirmation Modal */}
         {confirmDeleteId && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="max-w-md w-full border border-[#E84D7E]/60 bg-[#0B0E16] p-6 text-left">
               <div className="text-[10px] tracking-[0.3em] text-[#E84D7E]">WARNING — DESTRUCTIVE ACTION</div>
               <h3 className="mt-2 font-display text-lg text-[#F2F5FA]">

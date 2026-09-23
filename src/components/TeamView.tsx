@@ -178,7 +178,7 @@ export const TeamView: React.FC = () => {
 
         {/* Role guidance */}
         <div className="mt-6 border-l-2 border-[#3A4358] pl-4 py-1 text-[11px] text-[#A6B2C8] leading-relaxed">
-          Points, node unlocks, skips, and convergence fragments are synchronized in real-time across all cell operatives.
+          Points and challenge progress are synchronized in real time across all cell operatives.
         </div>
       </div>
     </div>

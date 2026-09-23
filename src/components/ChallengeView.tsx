@@ -1,16 +1,15 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { DIFFICULTY_META } from '../services/backend';
 import { TONE } from '../data/pathsData';
-import { Hint } from '../types';
 import { api } from '../services/api';
-import { SpinWheelModal } from './SpinWheelModal';
+import { safeResourceUrl } from '../utils/safeResourceUrl';
 
 export const ChallengeView: React.FC = () => {
   const {
-    activeChallenge, navigateTo, submitFlag, skipChallenge, openBriefing,
-    getPathChallenges, skips, rewardMultiplier, loadHints, unlockHint, busy,
-    currentUser, event, notify, refresh, paths,
+    activeChallenge, navigateTo, submitFlag,
+    getPathChallenges, busy,
+    currentUser, event, notify, refresh,
   } = useGame();
 
   const [flag, setFlag] = useState('');
@@ -18,33 +17,18 @@ export const ChallengeView: React.FC = () => {
     type: 'idle',
     message: '',
   });
-  const [hints, setHints] = useState<Hint[] | null>(null);
-  const [showHints, setShowHints] = useState(false);
-  const [showSpinWheel, setShowSpinWheel] = useState(false);
+  const [justSolved, setJustSolved] = useState(false);
   const [showAdminEdit, setShowAdminEdit] = useState(false);
-  const [confirmSkip, setConfirmSkip] = useState(false);
+  const [flagHover, setFlagHover] = useState(false);
 
   const challengeId = activeChallenge?.id ?? null;
-  const pathObj = activeChallenge ? paths.find((p) => p.code === activeChallenge.pathId) : null;
-  const effectiveMultiplier = pathObj?.rewardMultiplier ? Number(pathObj.rewardMultiplier) : rewardMultiplier;
-
-  const refreshHints = useCallback(async () => {
-    if (!challengeId) return;
-    setHints(await loadHints(challengeId));
-  }, [challengeId, loadHints]);
 
   // Reset per-challenge UI when navigating between nodes.
   useEffect(() => {
     setFlag('');
     setStatus({ type: 'idle', message: '' });
-    setHints(null);
-    setShowHints(false);
-    setConfirmSkip(false);
+    setJustSolved(false);
   }, [challengeId]);
-
-  useEffect(() => {
-    if (showHints && hints === null) void refreshHints();
-  }, [showHints, hints, refreshHints]);
 
   if (!activeChallenge || !activeChallenge.id) {
     return (
@@ -54,8 +38,8 @@ export const ChallengeView: React.FC = () => {
             ? 'This node has not been revealed to your team yet.'
             : 'No challenge selected.'}
         </div>
-        <button onClick={() => navigateTo('MAP')} className="text-[12px] text-[#5ED6E3] cursor-pointer">
-          ← BACK TO CHART
+        <button onClick={() => navigateTo('DASHBOARD')} className="text-[12px] text-[#5ED6E3] cursor-pointer">
+          ← BACK TO CHALLENGES
         </button>
       </div>
     );
@@ -63,9 +47,9 @@ export const ChallengeView: React.FC = () => {
 
   const tone = TONE[activeChallenge.pathId];
   const diff = DIFFICULTY_META[activeChallenge.difficulty];
-  const solved = activeChallenge.status === 'solved';
-  const skipped = activeChallenge.status === 'skipped';
+  const solved = activeChallenge.status === 'solved' || justSolved;
   const closed = solved;
+  const resourceUrl = safeResourceUrl(activeChallenge.resourceLink);
 
   // Siblings for prev/next come from the whole path so the arrows still work
   // across nodes that are revealed but not adjacent in the open set.
@@ -74,7 +58,6 @@ export const ChallengeView: React.FC = () => {
   const prev = i > 0 ? all[i - 1] : null;
   const next = i >= 0 && i < all.length - 1 ? all[i + 1] : null;
 
-  const [flagHover, setFlagHover] = useState(false);
   // Fixed gold from the PRE-TRANSMISSION box (Path A amber), not the path tone.
   const GOLD = '#E0A83E';
 
@@ -83,39 +66,23 @@ export const ChallengeView: React.FC = () => {
     if (!flag.trim() || busy) return;
     const r = await submitFlag(activeChallenge.id, flag);
     setStatus({ type: r.success ? 'success' : 'error', message: r.message });
-    if (r.success) setFlag('');
-  };
-
-  const doSkip = async () => {
-    setConfirmSkip(false);
-    const r = await skipChallenge(activeChallenge.id);
-    if (!r.success) {
-      setStatus({ type: 'error', message: r.message });
-      return;
-    }
-    if (next && next.id) {
-      navigateTo('CHALLENGE', next.slot);
-      openBriefing(next.slot);
-    } else {
-      navigateTo('MAP');
+    if (r.success) {
+      setJustSolved(true);
+      setFlag('');
     }
   };
 
-  const buyHint = async (hint: Hint) => {
-    const r = await unlockHint(activeChallenge.id, hint.id);
-    setStatus({ type: r.success ? 'success' : 'error', message: r.message });
-    if (r.success) await refreshHints();
-  };
+
 
   return (
     <div className="flex-1 bg-[#07090F]">
       <div className="w-full max-w-6xl mx-auto px-6 sm:px-10 py-10">
         <div className="flex justify-between text-[11px] tracking-[0.2em] text-[#8B93A9]">
           <button
-            onClick={() => navigateTo('MAP', null, activeChallenge.pathId)}
+            onClick={() => navigateTo('DASHBOARD')}
             className="hover:text-[#5ED6E3] font-medium transition-colors cursor-pointer"
           >
-            ← CHART
+            ← CHALLENGES
           </button>
           <span className="flex items-center gap-4">
             {currentUser?.isAdmin && (
@@ -131,7 +98,6 @@ export const ChallengeView: React.FC = () => {
               onClick={() => {
                 if (next) {
                   navigateTo('CHALLENGE', next.slot);
-                  openBriefing(next.slot);
                 }
               }}
               disabled={!next}
@@ -144,7 +110,7 @@ export const ChallengeView: React.FC = () => {
 
         <div className="mt-10 text-[11px] font-semibold tracking-[0.25em]" style={{ color: tone }}>
           {activeChallenge.slot} · {activeChallenge.category}
-          {solved ? ' · HELD ✓' : skipped ? ' · SKIPPED (STILL SOLVABLE)' : ''}
+          {solved ? ' · HELD ✓' : ''}
         </div>
         <h1 className="mt-3 font-display uppercase tracking-wide text-3xl sm:text-5xl leading-tight text-[#F2F5FA]">
           {activeChallenge.title}
@@ -174,7 +140,6 @@ export const ChallengeView: React.FC = () => {
           {activeChallenge.maxAttempts !== null && (
             <span className="text-[#E0A83E]">· MAX {activeChallenge.maxAttempts} ATTEMPTS</span>
           )}
-          {activeChallenge.isPathFinal && <span style={{ color: tone }}>· PATH FINAL — FRAGMENT</span>}
         </div>
 
         <div className="mt-10 text-[10px] font-semibold tracking-[0.3em] text-[#5A6379]">
@@ -185,10 +150,10 @@ export const ChallengeView: React.FC = () => {
         </p>
 
         {/* Challenge Attachment / Target Link */}
-        {activeChallenge.resourceLink && (
+        {resourceUrl && (
           <div className="mt-5">
             <a
-              href={activeChallenge.resourceLink}
+              href={resourceUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2.5 px-4 py-2.5 text-[11px] font-mono font-semibold tracking-[0.2em] border border-[#5ED6E3]/40 bg-[#5ED6E3]/10 text-[#5ED6E3] hover:bg-[#5ED6E3]/20 hover:border-[#5ED6E3]/70 hover:shadow-[0_0_15px_rgba(94,214,227,0.15)] transition-all cursor-pointer"
@@ -202,137 +167,10 @@ export const ChallengeView: React.FC = () => {
           </div>
         )}
 
-        {/* Pre-transmission narration, served per-challenge from sz_path_challenge. */}
-        {activeChallenge.preStory && (
-          <div
-            className="mt-8 border-l-2 pl-5 pr-5 py-4 max-w-3xl"
-            style={{ borderColor: `${tone}88`, background: `${tone}08` }}
-          >
-            <div className="text-[10px] font-semibold tracking-[0.3em]" style={{ color: tone }}>
-              PRE-TRANSMISSION // PATH {activeChallenge.pathId} · {activeChallenge.slot}
-            </div>
-            <p className="mt-3 font-lore italic text-[18px] leading-[1.7] text-[#E8ECF3]">
-              “{activeChallenge.preStory}”
-            </p>
-            <button
-              onClick={() => openBriefing(activeChallenge.slot)}
-              className="mt-3 text-[12px] font-semibold tracking-[0.15em] hover:brightness-110 cursor-pointer"
-              style={{ color: tone }}
-            >
-              HEAR FULL PRE-BRIEF →
-            </button>
-          </div>
-        )}
 
-        {/* The debrief the server released on solving. */}
-        {solved && activeChallenge.postStory && (
-          <div className="mt-8 border-l-2 border-[#5ED6E3]/60 bg-[#5ED6E3]/[0.04] pl-5 pr-5 py-4 max-w-3xl">
-            <div className="text-[10px] font-semibold tracking-[0.3em] text-[#5ED6E3]">
-              POST-TRANSMISSION // DEBRIEF {activeChallenge.slot}
-            </div>
-            <p className="mt-3 font-lore italic text-[17px] leading-[1.7] text-[#E8ECF3]">
-              {activeChallenge.postStory}
-            </p>
-          </div>
-        )}
-
-        {/* Hints and Quantum Spin Wheel access */}
-        <div className="mt-8 border-t border-[#1E2536] pt-6 max-w-4xl flex items-center justify-between flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setShowHints(true);
-              if (hints === null) void refreshHints();
-            }}
-            className="px-3.5 py-2 border border-[#E0A83E]/40 bg-[#E0A83E]/5 text-[11px] font-semibold tracking-[0.2em] text-[#E0A83E] hover:bg-[#E0A83E]/15 cursor-pointer flex items-center gap-2 transition-colors"
-          >
-            <span>💡</span> HINTS & INTEL ({hints ? hints.length : '…'})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowSpinWheel(true)}
-            className="px-3.5 py-2 border border-[#5ED6E3]/50 bg-[#5ED6E3]/10 text-[11px] font-semibold tracking-[0.2em] text-[#5ED6E3] hover:bg-[#5ED6E3]/20 cursor-pointer flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(94,214,227,0.15)]"
-          >
-            <span className="text-[13px]">⚡</span> QUANTUM WHEEL
-          </button>
-        </div>
-
-        {/* Modal Popup for Hints on top of ChallengeView */}
-        {showHints && (
-          <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto"
-            onClick={() => setShowHints(false)}
-          >
-            <div
-              className="max-w-lg w-full max-h-[85vh] overflow-y-auto border border-[#E0A83E]/60 bg-[#0B0E16] p-6 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between pb-3 border-b border-[#1E2536]">
-                <div className="text-[11px] tracking-[0.25em] text-[#E0A83E] font-bold font-display">
-                  INTELLIGENCE HINTS // {activeChallenge.title}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowHints(false)}
-                  className="text-[12px] text-[#5A6379] hover:text-[#F2F5FA] px-2 py-1 cursor-pointer font-mono"
-                >
-                  ESC / CLOSE ×
-                </button>
-              </div>
-              <div className="mt-4 space-y-3">
-                {/* Quantum Wheel callout inside Hints & Intel dialog */}
-                <div className="p-3.5 border border-[#5ED6E3]/40 bg-[#5ED6E3]/5 flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-[11px] font-bold tracking-[0.2em] text-[#5ED6E3] font-mono flex items-center gap-1.5">
-                      <span>🎡</span> QUANTUM WHEEL
-                    </div>
-                    <div className="text-[10px] text-[#8B93A9] mt-0.5">
-                      Spin for 0-pt hints, bonus games, or extra spins! (10 spins/team)
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowHints(false);
-                      setShowSpinWheel(true);
-                    }}
-                    className="px-3 py-1.5 border border-[#5ED6E3] bg-[#5ED6E3]/20 hover:bg-[#5ED6E3]/30 text-[#5ED6E3] text-[10px] font-mono tracking-[0.15em] font-bold cursor-pointer whitespace-nowrap transition-colors"
-                  >
-                    SPIN NOW →
-                  </button>
-                </div>
-                {hints === null && <div className="text-[12px] text-[#8B93A9] py-4 text-center">Reading hint telemetry…</div>}
-                {hints?.length === 0 && (
-                  <div className="text-[12px] text-[#8B93A9] py-4 text-center">No hints published for this challenge.</div>
-                )}
-                {hints?.map((hint, idx) => (
-                  <div key={hint.id} className="border border-[#1E2536] bg-[#07090F] p-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-[11px] tracking-[0.2em] text-[#8B93A9] font-mono">
-                        HINT {idx + 1} · {hint.cost} PTS
-                      </span>
-                      {!hint.isUnlocked && (
-                        <button
-                          onClick={() => buyHint(hint)}
-                          disabled={busy}
-                          className="text-[11px] font-semibold tracking-[0.15em] text-[#E0A83E] hover:brightness-125 disabled:opacity-40 cursor-pointer"
-                        >
-                          DECRYPT −{hint.cost} PTS →
-                        </button>
-                      )}
-                    </div>
-                    {hint.isUnlocked && hint.body && (
-                      <p className="mt-2.5 text-[13px] leading-relaxed text-[#C6CCDA] border-t border-[#1E2536]/40 pt-2">{hint.body}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
         <form onSubmit={submit} className="mt-10 max-w-4xl">
+          {!solved && (
           <div
             className="relative border px-5 py-5 transition-all duration-300"
             onMouseEnter={() => setFlagHover(true)}
@@ -373,7 +211,7 @@ export const ChallengeView: React.FC = () => {
                 className="text-[9px] tracking-[0.25em]"
                 style={{ color: flagHover ? GOLD : `${GOLD}77` }}
               >
-                {solved ? 'SEALED & SCORED' : skipped ? 'SKIPPED — STILL SOLVABLE' : 'AWAITING INPUT'}
+                {solved ? 'SEALED & SCORED' : 'AWAITING INPUT'}
               </div>
             </div>
             <div
@@ -403,15 +241,11 @@ export const ChallengeView: React.FC = () => {
               </button>
             </div>
           </div>
+          )}
 
           {solved && (
-            <div className="mt-4 text-[12px] text-[#5ED6E3]">
-              Already held by your team.
-            </div>
-          )}
-          {skipped && !solved && (
-            <div className="mt-4 text-[12px] text-[#E0A83E]">
-              This challenge was skipped to advance the path, but remains open. Your team can solve it anytime to earn points.
+            <div className="mt-4 border border-[#5ED6E3]/50 bg-[#5ED6E3]/[0.06] px-4 py-3 text-[12px] text-[#5ED6E3]">
+              CHALLENGE SOLVED · FLAG ACCEPTED
             </div>
           )}
           {status.type !== 'idle' && (
@@ -424,7 +258,6 @@ export const ChallengeView: React.FC = () => {
               type="button"
               onClick={() => {
                 navigateTo('CHALLENGE', next.slot);
-                openBriefing(next.slot);
               }}
               className="mt-3 text-[12px] underline underline-offset-4 cursor-pointer"
               style={{ color: tone }}
@@ -433,49 +266,8 @@ export const ChallengeView: React.FC = () => {
             </button>
           )}
 
-          {!solved && !skipped && (
-            <div className="mt-6">
-              {confirmSkip ? (
-                <div className="border border-[#E84D7E]/40 bg-[#E84D7E]/[0.05] px-4 py-3">
-                  <p className="text-[12px] leading-relaxed text-[#C6CCDA]">
-                    Skipping {activeChallenge.slot} advances the path and <b>deducts 150 points</b> from your
-                    team's score. Points can go negative. This node is not closed — your team can return and solve it anytime. You have <b>{skips.remaining}</b> of {skips.quota} skips left.
-                  </p>
-                  <div className="mt-3 flex items-center gap-5 text-[11px] tracking-[0.2em]">
-                    <button onClick={() => setConfirmSkip(false)} className="text-[#A6B2C8] hover:text-[#F2F5FA] font-medium transition-colors cursor-pointer">
-                      ← CANCEL
-                    </button>
-                    <button onClick={doSkip} disabled={busy} className="text-[#FF6B9B] hover:text-[#FFA3C0] font-bold disabled:opacity-40 transition-colors cursor-pointer">
-                      SPEND A SKIP →
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setConfirmSkip(true)}
-                  disabled={skips.remaining <= 0}
-                  className="text-[11px] tracking-[0.2em] font-semibold text-[#E84D7E] hover:text-[#FF7096] hover:brightness-125 disabled:opacity-40 disabled:hover:text-[#E84D7E] cursor-pointer border border-[#E84D7E]/40 hover:border-[#E84D7E] bg-[#E84D7E]/10 px-3.5 py-1.5 transition-all inline-block"
-                >
-                  {skips.remaining > 0
-                    ? `SKIP CHALLENGE — ${skips.remaining}/${skips.quota} LEFT →`
-                    : 'NO SKIPS REMAINING'}
-                </button>
-              )}
-            </div>
-          )}
-        </form>
 
-        {showSpinWheel && event && activeChallenge && (
-          <SpinWheelModal
-            eventId={event.id}
-            challengeId={activeChallenge.id}
-            challengeTitle={activeChallenge.title}
-            isOpen={showSpinWheel}
-            onClose={() => setShowSpinWheel(false)}
-            onHintUnlocked={() => void refreshHints()}
-          />
-        )}
+        </form>
 
         {showAdminEdit && event && (
           <AdminChallengeModal

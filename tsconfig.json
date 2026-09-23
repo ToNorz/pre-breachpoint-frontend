@@ -18,6 +18,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@mock-data": [
+        "./src/services/mockData.ts"
       ]
     },
     "allowImportingTsExtensions": true,

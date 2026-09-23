@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 /**
  * Dashboard overlay shell (modal layer).
  * Z-index scale used in this app: page content z-auto → modals z-50
- * (BriefingModal, TourModal, StoryNarrationModal, DashboardOverlay) →
+ * (DashboardOverlay) →
  * film grain z-60/61 (pointer-events-none, non-interactive).
  * Backdrop click closes it; body scroll is locked while open so the
  * background dashboard cannot interfere.

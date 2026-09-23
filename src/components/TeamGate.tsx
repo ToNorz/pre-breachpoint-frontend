@@ -4,7 +4,7 @@ import { CornerTicks } from './LoginForm';
 
 /**
  * Team formation. Nothing in the event scores without one — `core_solve`,
- * `sz_team_path` and `sz_skip` are all keyed on a team, and the event guard
+ * `sz_team_path` is keyed on a team, and the event guard
  * refuses every point-changing action until the player is in one.
  *
  * Four to a team, one team per event, and joining needs both the name and the
@@ -45,7 +45,7 @@ export const TeamGate: React.FC = () => {
             No one works<br />this alone.
           </h1>
           <p className="mt-4 text-[13px] leading-relaxed text-[#A6B2C8]">
-            Form a cell or join one. Up to four operatives; progress, points and skips are
+            Form a cell or join one. Up to four operatives; progress and points are
             shared across the whole team.
           </p>
 

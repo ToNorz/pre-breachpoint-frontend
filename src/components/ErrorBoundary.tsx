@@ -24,11 +24,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReset = () => {
-    try {
-      localStorage.removeItem('breachpoint_token');
-    } catch {
-      /* ignore */
-    }
     window.location.href = '/';
   };
 

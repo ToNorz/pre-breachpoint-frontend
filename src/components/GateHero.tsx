@@ -6,7 +6,7 @@ import { useGame } from '../context/GameContext';
  * Shared by the standalone gate route and the combined landing page.
  */
 export const GateHero: React.FC = () => {
-  const { navigateTo, toggleTour, currentUser } = useGame();
+  const { navigateTo, currentUser } = useGame();
 
   return (
     <div className="flex-1 w-full max-w-5xl mx-auto px-6 py-10 flex flex-col items-center">
@@ -52,13 +52,6 @@ export const GateHero: React.FC = () => {
           className="px-10 py-4 bg-[#5ED6E3] hover:bg-[#7CE3EE] text-[#06232A] text-[13px] font-bold tracking-[0.25em] transition-colors cursor-pointer"
         >
           {currentUser ? 'ENTER DASHBOARD →' : 'OPERATIVE LOGIN →'}
-        </button>
-        <button
-          id="btn-take-the-tour"
-          onClick={() => toggleTour(true)}
-          className="px-10 py-4 border border-[#2C3550] text-[#C6CCDA] text-[13px] font-semibold tracking-[0.25em] hover:border-[#5ED6E3]/60 transition-colors cursor-pointer"
-        >
-          FIRST TIME? TAKE THE TOUR
         </button>
       </div>
 

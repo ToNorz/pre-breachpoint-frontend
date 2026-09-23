@@ -91,13 +91,13 @@ export const LeaderboardView: React.FC = () => {
           <div className="mt-4 pt-3 border-t border-[#1E2536]/80 flex flex-wrap items-center justify-between gap-3 text-[11px]">
             <div className="flex flex-wrap gap-x-5 gap-y-1">
               <span className="text-[#C6CCDA] font-semibold tracking-wider">PATH BREAKDOWN:</span>
-              {(['A', 'B', 'C'] as const).map((code) => {
+              {(['A'] as const).map((code) => {
                 const path = paths.find((p) => p.code === code);
-                const pts = code === 'A' ? pathScores.pathA : code === 'B' ? pathScores.pathB : pathScores.pathC;
+                const pts = pathScores.pathA;
                 return (
                   <span key={code} className="font-mono font-medium" style={{ color: TONE[code] }}>
                     PATH {code}: <b className="text-[#F2F5FA]">{pts.toLocaleString()}</b>
-                    <span className="text-[#9BA6BC]"> ({path?.solved ?? 0}/{path?.total ?? 10})</span>
+                    <span className="text-[#9BA6BC]"> ({path?.solved ?? 0}/{path?.total ?? 0})</span>
                   </span>
                 );
               })}
@@ -215,15 +215,14 @@ export const LeaderboardView: React.FC = () => {
               <div className="text-[12px] font-semibold tracking-[0.1em] text-[#F2F5FA]">NOT DONE DIGGING?</div>
               <p className="mt-1 text-[11px] text-[#A6B2C8]">Unopened seals are still down there.</p>
               <button
-                onClick={() => navigateTo('MAP')}
+                onClick={() => navigateTo('DASHBOARD')}
                 className="mt-3 w-full py-2.5 bg-[#5ED6E3] hover:bg-[#7CE3EE] text-[#06232A] text-[11px] font-bold tracking-[0.2em] transition-colors cursor-pointer"
               >
-                BACK TO THE CHART →
+                BACK TO CHALLENGES →
               </button>
             </div>
             <div className="border border-[#1E2536] bg-[#0B0E16]/60 p-4 text-[10.5px] leading-relaxed tracking-[0.12em] text-[#A6B2C8]">
-              Scores decay as more teams solve a challenge. Hints are paid for out of your total.
-              Skipping a challenge deducts 150 points. Switching a path in-between deducts 1,000 points. Points can go negative.
+              Challenge scores decay as more teams solve them, so early solves earn more points.
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { api, ApiEvent } from '../../services/api';
 import { AdminNav } from './AdminNav';
+import { CornerTicks } from '../LoginForm';
 
 export const AdminEvents: React.FC = () => {
   const { notify, adminSelectedEventId, setAdminSelectedEventId, navigateTo } = useGame();
@@ -61,7 +62,7 @@ export const AdminEvents: React.FC = () => {
   return (
     <>
       <AdminNav />
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-8 scan-faint">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <div className="text-[9px] tracking-[0.3em] text-[#E0A83E]">■ EVENT LIFECYCLE CONTROLLER</div>
@@ -100,8 +101,8 @@ export const AdminEvents: React.FC = () => {
               return (
                 <div
                   key={ev.id}
-                  className={`grid grid-cols-[1fr_130px_110px_190px_240px] gap-3 px-4 py-3.5 border-b border-[#1E2536]/60 items-center text-[12px] ${
-                    isSelected ? 'bg-[#5ED6E3]/[0.03]' : ''
+                  className={`grid grid-cols-[1fr_130px_110px_190px_240px] gap-3 px-4 py-3.5 border-b border-[#1E2536]/60 items-center text-[12px] transition-colors ${
+                    isSelected ? 'bg-[#5ED6E3]/[0.03]' : 'hover:bg-[#5ED6E3]/[0.02]'
                   }`}
                 >
                   <div className="truncate">
@@ -188,7 +189,7 @@ export const AdminEvents: React.FC = () => {
 
         {/* Delete Confirmation Modal */}
         {confirmDeleteId && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="max-w-md w-full border border-[#E84D7E]/60 bg-[#0B0E16] p-6 text-left">
               <div className="text-[10px] tracking-[0.3em] text-[#E84D7E]">CONFIRM EVENT DELETION</div>
               <h3 className="mt-2 font-display text-lg text-[#F2F5FA]">
@@ -221,7 +222,7 @@ export const AdminEvents: React.FC = () => {
 
         {/* Reset Confirmation Modal */}
         {confirmResetId && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="max-w-md w-full border border-[#E0A83E]/60 bg-[#0B0E16] p-6 text-left">
               <div className="text-[10px] tracking-[0.3em] text-[#E0A83E]">CONFIRM EVENT RESET</div>
               <h3 className="mt-2 font-display text-lg text-[#F2F5FA]">
@@ -299,9 +300,10 @@ const CreateEventForm: React.FC<{ onDone: () => void; onCancel: () => void }> = 
       onClick={onCancel}
     >
       <div
-        className="max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#5ED6E3]/60 bg-[#0B0E16] p-6 shadow-2xl"
+        className="relative max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#5ED6E3]/60 bg-[#0B0E16] p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
+        <CornerTicks />
         <div className="flex items-center justify-between pb-3 border-b border-[#1E2536]">
           <div className="text-[11px] tracking-[0.25em] text-[#5ED6E3] font-bold font-display">CREATE NEW EVENT</div>
           <div className="flex items-center gap-3">
@@ -317,7 +319,7 @@ const CreateEventForm: React.FC<{ onDone: () => void; onCancel: () => void }> = 
               onClick={onCancel}
               className="text-[12px] text-[#5A6379] hover:text-[#F2F5FA] px-2 py-1 cursor-pointer font-mono"
             >
-              ESC / CLOSE ×
+              [X]
             </button>
           </div>
         </div>
@@ -333,7 +335,7 @@ const CreateEventForm: React.FC<{ onDone: () => void; onCancel: () => void }> = 
             <button
               type="submit"
               disabled={busy}
-              className="px-6 py-2.5 bg-[#5ED6E3] text-[#06232A] text-[11px] font-bold tracking-[0.2em] cursor-pointer hover:brightness-110 disabled:opacity-40"
+              className="px-6 py-2.5 bg-[#5ED6E3] text-[#06232A] text-[11px] font-bold tracking-[0.2em] cursor-pointer hover:brightness-110 disabled:opacity-40 shadow-[0_0_20px_rgba(94,214,227,0.2)]"
             >
               {busy ? 'CREATING…' : 'INITIALIZE EVENT →'}
             </button>
@@ -419,9 +421,10 @@ const EditEventForm: React.FC<{
       onClick={onCancel}
     >
       <div
-        className="max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#E0A83E]/60 bg-[#0B0E16] p-6 shadow-2xl"
+        className="relative max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#E0A83E]/60 bg-[#0B0E16] p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
+        <CornerTicks color="#E0A83E" />
         <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-[#1E2536]">
           <div className="text-[11px] tracking-[0.25em] text-[#E0A83E] font-bold font-display">
             EDIT EVENT CONFIGURATION // {ev.name}
@@ -453,7 +456,7 @@ const EditEventForm: React.FC<{
               onClick={onCancel}
               className="text-[12px] text-[#5A6379] hover:text-[#F2F5FA] px-2 py-1 cursor-pointer font-mono ml-2"
             >
-              ESC / CLOSE ×
+              [X]
             </button>
           </div>
         </div>
@@ -469,7 +472,7 @@ const EditEventForm: React.FC<{
             <button
               type="submit"
               disabled={busy}
-              className="px-6 py-2.5 bg-[#5ED6E3] text-[#06232A] text-[11px] font-bold tracking-[0.2em] cursor-pointer disabled:opacity-40 hover:brightness-110"
+              className="px-6 py-2.5 bg-[#5ED6E3] text-[#06232A] text-[11px] font-bold tracking-[0.2em] cursor-pointer disabled:opacity-40 hover:brightness-110 shadow-[0_0_20px_rgba(94,214,227,0.2)]"
             >
               {busy ? 'SAVING…' : 'SAVE CHANGES →'}
             </button>

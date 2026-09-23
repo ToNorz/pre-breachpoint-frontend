@@ -25,7 +25,7 @@ export const AdminNav: React.FC = () => {
   } = useGame();
 
   return (
-    <div className="border-b border-[#1E2536] bg-[#0A0D15]">
+    <div className="border-b border-[#1E2536] bg-[#0A0D15] scan-faint">
       {/* Top Banner */}
       <div className="px-6 py-3 border-b border-[#1E2536]/60 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-4">
@@ -60,15 +60,15 @@ export const AdminNav: React.FC = () => {
           </span>
           <button
             onClick={() => navigateTo('DASHBOARD')}
-            className="px-3 py-1 border border-[#1E2536] text-[10px] tracking-[0.18em] text-[#5ED6E3] hover:bg-[#5ED6E3]/[0.08] cursor-pointer"
+            className="px-3 py-1 border border-[#5ED6E3]/40 text-[10px] tracking-[0.18em] text-[#5ED6E3] hover:bg-[#5ED6E3]/[0.08] cursor-pointer shadow-[0_0_15px_rgba(94,214,227,0.1)] hover:shadow-[0_0_20px_rgba(94,214,227,0.2)]"
           >
             PLAY AS OPERATIVE →
           </button>
           <button
             onClick={logout}
-            className="px-3 py-1 border border-[#E84D7E]/40 text-[10px] tracking-[0.18em] text-[#E84D7E] hover:bg-[#E84D7E]/[0.08] cursor-pointer"
+            className="px-3 py-1 text-[10px] tracking-[0.18em] text-[#E84D7E] hover:text-[#FF6B9B] font-bold cursor-pointer transition-colors"
           >
-            LOGOUT
+            [ LOGOUT ]
           </button>
         </div>
       </div>

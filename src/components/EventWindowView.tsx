@@ -183,7 +183,7 @@ const Closed: React.FC = () => {
         </div>
 
         <div className="mt-8 flex justify-center gap-6 text-[10px] tracking-[0.3em]">
-          {(['A', 'B', 'C'] as const).map((c) => (
+          {(['A'] as const).map((c) => (
             <span key={c} style={{ color: TONE[c] }}>PATH {c}</span>
           ))}
         </div>

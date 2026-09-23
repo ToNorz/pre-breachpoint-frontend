@@ -188,7 +188,7 @@ export const AdminSpinWheel: React.FC = () => {
   return (
     <>
       <AdminNav />
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-8 scan-faint">
         {/* Header section */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
@@ -205,7 +205,7 @@ export const AdminSpinWheel: React.FC = () => {
               onClick={() => setAutoRefresh(!autoRefresh)}
               className={`px-3 py-1.5 text-[10px] tracking-[0.15em] border cursor-pointer font-mono ${
                 autoRefresh
-                  ? 'border-[#5ED6E3] text-[#5ED6E3] bg-[#5ED6E3]/[0.08]'
+                  ? 'border-[#5ED6E3] text-[#5ED6E3] bg-[#5ED6E3]/[0.08] shadow-[0_0_12px_rgba(94,214,227,0.3)]'
                   : 'border-[#1E2536] text-[#5A6379]'
               }`}
             >
@@ -329,13 +329,23 @@ export const AdminSpinWheel: React.FC = () => {
               </button>
             ))}
           </div>
-          <input
-            type="text"
-            placeholder="Search cell, operative, challenge, or reward…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="bg-[#0E1220] border border-[#1E2536] px-3 py-1.5 text-[11px] text-[#D5DBE7] placeholder-[#5A6379] outline-none focus:border-[#5ED6E3] w-72 font-mono"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search cell, operative, challenge, or reward…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="bg-[#0E1220] border border-[#1E2536] px-3 py-1.5 text-[11px] text-[#D5DBE7] placeholder-[#5A6379] outline-none focus:border-[#5ED6E3] w-64 font-mono pr-7"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#5A6379] hover:text-[#F2F5FA] text-[12px] cursor-pointer"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Audit Stream Table */}
