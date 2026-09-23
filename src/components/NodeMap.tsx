@@ -65,10 +65,12 @@ export const NodeMap: React.FC = () => {
     if (!c.id) {
       notify(
         'info',
-        c.status === 'locked' ? 'NOT YET REVEALED' : `${c.slot} CLOSED`,
+        c.status === 'locked' ? 'NOT YET REVEALED' : c.status === 'skipped' ? `${c.slot} SKIPPED` : `${c.slot} COMPLETED`,
         c.status === 'locked'
           ? 'Solve the open nodes on this path to surface this one.'
-          : 'Already completed by your team.',
+          : c.status === 'skipped'
+            ? 'This node was skipped, but your team can return and solve it anytime.'
+            : 'Already completed by your team.',
       );
       return;
     }
@@ -105,9 +107,6 @@ export const NodeMap: React.FC = () => {
           <div className="flex flex-wrap gap-2 lg:ml-auto text-[11px] tracking-[0.12em]">
             <span className="px-3.5 py-2.5 border border-[#2B354C] bg-[#0B0E16]/80 text-[#C6CCDA] flex items-center gap-1.5 font-medium">
               <span className="text-[#E0A83E] text-[13px]">★</span> <b className="text-[#F2F5FA] font-bold font-mono">{teeth}/3</b> <span className="text-[#A6B2C8] font-semibold tracking-[0.15em]">FRAGMENTS</span>
-            </span>
-            <span className="px-3.5 py-2.5 border border-[#2B354C] bg-[#0B0E16]/80 text-[#C6CCDA] flex items-center gap-1.5 font-medium">
-              <span className="text-[#E84D7E] text-[12px]">●</span> <b className="text-[#F2F5FA] font-bold font-mono">{Math.round(rewardMultiplier * 100)}%</b> <span className="text-[#A6B2C8] font-semibold tracking-[0.15em]">REWARDS</span>
             </span>
           </div>
         </div>
@@ -197,9 +196,9 @@ export const NodeMap: React.FC = () => {
                           <rect x="6.5" y="-34" width="4.5" height="4.5" transform="rotate(45 6.5 -34)" />
                         </g>
                       )}
-                      <circle r="16" fill={held ? `${LANE[p].c}2E` : '#0B0E16'} stroke={held || nextUp ? (nextUp ? '#F2F5FA' : LANE[p].c) : wasSkipped ? '#E84D7E88' : '#455273'} strokeWidth={held || nextUp ? 2 : 1.3} />
-                      <text y="4.5" textAnchor="middle" fontSize="10.5" fontWeight="bold" fill={held || nextUp ? '#F2F5FA' : sealed ? '#8B93A9' : '#C6CCDA'} fontFamily="IBM Plex Mono">
-                        {held ? '●' : wasSkipped ? '–' : sealed ? '×' : String(c.index).padStart(2, '0')}
+                      <circle r="16" fill={held ? `${LANE[p].c}2E` : wasSkipped ? '#E0A83E1A' : '#0B0E16'} stroke={held || nextUp ? (nextUp ? '#F2F5FA' : LANE[p].c) : wasSkipped ? '#E0A83E' : '#455273'} strokeWidth={held || nextUp ? 2 : wasSkipped ? 1.8 : 1.3} />
+                      <text y="4.5" textAnchor="middle" fontSize="10.5" fontWeight="bold" fill={held || nextUp ? '#F2F5FA' : wasSkipped ? '#E0A83E' : sealed ? '#8B93A9' : '#C6CCDA'} fontFamily="IBM Plex Mono">
+                        {held ? '●' : wasSkipped ? '↷' : sealed ? '×' : String(c.index).padStart(2, '0')}
                       </text>
                       <text y="31" textAnchor="middle" fontSize="8.5" fontWeight="500" letterSpacing="1" fill={held || nextUp || isSel ? '#F2F5FA' : '#9BA6BC'} fontFamily="IBM Plex Mono">
                         {p}-{String(c.index).padStart(2, '0')}
@@ -245,8 +244,8 @@ export const NodeMap: React.FC = () => {
                     <text y="-4" textAnchor="middle" fontSize="8.5" fontWeight="500" letterSpacing="1.5" fill="#C6CCDA" fontFamily="IBM Plex Mono">
                       {(hovered.title || '').toUpperCase().slice(0, 28)}
                     </text>
-                    <text y="11" textAnchor="middle" fontSize="8" letterSpacing="1" fill="#A6B2C8" fontFamily="IBM Plex Mono">
-                      {hovered.era} · {hovered.currentPoints} PTS
+                    <text y="11" textAnchor="middle" fontSize="8" letterSpacing="1" fill={hovered.status === 'skipped' ? '#E0A83E' : '#A6B2C8'} fontFamily="IBM Plex Mono">
+                      {hovered.era} · {hovered.currentPoints} PTS{hovered.status === 'skipped' ? ' · SKIPPED (OPEN)' : ''}
                     </text>
                     <text y="27" textAnchor="middle" fontSize="11" letterSpacing="3" fontFamily="IBM Plex Mono">
                       {fills.map((f, i) => (

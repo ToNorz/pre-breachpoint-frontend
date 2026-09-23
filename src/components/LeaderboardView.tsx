@@ -223,7 +223,7 @@ export const LeaderboardView: React.FC = () => {
             </div>
             <div className="border border-[#1E2536] bg-[#0B0E16]/60 p-4 text-[10.5px] leading-relaxed tracking-[0.12em] text-[#A6B2C8]">
               Scores decay as more teams solve a challenge. Hints are paid for out of your total.
-              Skipping scores zero and drops the rest of that path to 80%.
+              Skipping a challenge deducts 150 points. Switching a path in-between deducts 1,000 points. Points can go negative.
             </div>
           </div>
         </div>

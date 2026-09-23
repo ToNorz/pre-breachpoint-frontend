@@ -86,7 +86,7 @@ export const TeamView: React.FC = () => {
           </button>
         </div>
 
-        <h1 className="mt-2 font-display font-medium uppercase tracking-wide text-3xl sm:text-4xl text-[#F2F5FA]">
+        <h1 className="mt-2 font-display font-medium tracking-wide text-3xl sm:text-4xl text-[#F2F5FA]">
           {team?.name || teamName}
         </h1>
 

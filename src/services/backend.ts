@@ -162,11 +162,13 @@ export function challengesForPath(board: ApiBoard | null, pathId: PathId): Chall
       slot,
       pathId,
       index,
-      title: status === 'locked' ? 'SEALED' : 'CLOSED',
+      title: status === 'locked' ? 'SEALED' : status === 'skipped' ? 'SKIPPED' : 'SOLVED',
       objective:
         status === 'locked'
           ? 'This node has not been revealed to your team yet.'
-          : 'Closed on a path your team has left.',
+          : status === 'skipped'
+            ? 'Skipped on a previous path — still available to solve.'
+            : 'Solved on a previous path.',
       era: 'PRESENT' as EraType,
       track: path ? `${FRAGMENT_LABEL[path.delivers]} TRACK` : '',
       category: '—',

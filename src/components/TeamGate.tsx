@@ -73,7 +73,10 @@ export const TeamGate: React.FC = () => {
                 id="team-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="TEAM_KRONOS"
+                placeholder="Team_Kronos"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 className="w-full bg-transparent font-mono text-[14px] tracking-[0.08em] text-[#5ED6E3] focus:outline-none placeholder-[#6E7891]"
               />
             </div>

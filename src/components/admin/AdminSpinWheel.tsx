@@ -5,20 +5,20 @@ import { AdminNav } from './AdminNav';
 
 const PROBABILITY_META: Record<string, { category: string; color: string; desc: string }> = {
   GAME_1: { category: 'High Chance', color: '#5ED6E3', desc: 'Side-Operation Protocol Alpha' },
-  BETTER_LUCK: { category: 'Moderate (< Games)', color: '#8B93A9', desc: 'Quantum Signal Disrupted' },
+  BETTER_LUCK: { category: 'Low Chance', color: '#8B93A9', desc: 'Quantum Signal Disrupted' },
   GAME_2: { category: 'High Chance', color: '#A78BFA', desc: 'Side-Operation Protocol Beta' },
   FREE_HINT: { category: 'Low Chance', color: '#E0A83E', desc: '0-Cost Intel Decryption' },
   GAME_3: { category: 'High Chance', color: '#34D399', desc: 'Side-Operation Protocol Gamma' },
-  FREE_SPIN: { category: 'Low Chance', color: '#F43F5E', desc: 'Quota Preserved (+1 Spin)' },
+  FREE_SPIN: { category: 'Moderate (< Games)', color: '#F43F5E', desc: 'Quota Preserved (+1 Spin)' },
 };
 
 const DEFAULT_PROBABILITIES = [
   { segment: 'GAME_1', label: 'GAME-1', prob: '24%', category: 'High Chance', color: '#5ED6E3', desc: 'Side-Operation Protocol Alpha' },
-  { segment: 'BETTER_LUCK', label: 'BETTER LUCK', prob: '14%', category: 'Moderate (< Games)', color: '#8B93A9', desc: 'Quantum Signal Disrupted' },
+  { segment: 'BETTER_LUCK', label: 'BETTER LUCK', prob: '7%', category: 'Low Chance', color: '#8B93A9', desc: 'Quantum Signal Disrupted' },
   { segment: 'GAME_2', label: 'GAME-2', prob: '24%', category: 'High Chance', color: '#A78BFA', desc: 'Side-Operation Protocol Beta' },
   { segment: 'FREE_HINT', label: 'FREE HINT', prob: '7%', category: 'Low Chance', color: '#E0A83E', desc: '0-Cost Intel Decryption' },
   { segment: 'GAME_3', label: 'GAME-3', prob: '24%', category: 'High Chance', color: '#34D399', desc: 'Side-Operation Protocol Gamma' },
-  { segment: 'FREE_SPIN', label: 'FREE SPIN', prob: '7%', category: 'Low Chance', color: '#F43F5E', desc: 'Quota Preserved (+1 Spin)' },
+  { segment: 'FREE_SPIN', label: 'FREE SPIN', prob: '14%', category: 'Moderate (< Games)', color: '#F43F5E', desc: 'Quota Preserved (+1 Spin)' },
 ];
 
 export const AdminSpinWheel: React.FC = () => {

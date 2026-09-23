@@ -554,8 +554,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const p = paths.find((x) => x.code === path);
       if (!p) return true;
       if (p.isActive || p.isAttempted) return false;
+      if (!chosenPath) return true;
       if (p.isLocked !== undefined) return p.isLocked;
-      if (!chosenPath) return false;
       const activeP = paths.find((x) => x.code === chosenPath);
       const activeDone =
         activeP?.isCompleted ||

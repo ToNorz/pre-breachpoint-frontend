@@ -3,6 +3,7 @@ import { useGame } from '../context/GameContext';
 import { getCharacterForSpeaker } from '../data/charactersData';
 import { PATH_SKINS } from '../data/pathsData';
 import { toSlides } from '../data/storyData';
+import { soundFx } from '../utils/audio';
 
 /**
  * Pre-transmission briefing, typed out a slide at a time.
@@ -44,14 +45,25 @@ export const BriefingModal: React.FC = () => {
   if (!showBriefingModal || !briefingChallenge || slides.length === 0) return null;
 
   const enterChallenge = () => {
+    soundFx.playClick();
     closeBriefing();
     navigateTo('CHALLENGE', briefingChallenge.slot);
   };
 
   const next = () => {
-    if (shown.length < (slides[idx]?.length || 0)) setShown(slides[idx]);
-    else if (idx < slides.length - 1) setIdx((v) => v + 1);
-    else enterChallenge();
+    soundFx.playClick();
+    if (idx < slides.length - 1) {
+      setIdx((v) => v + 1);
+    } else {
+      enterChallenge();
+    }
+  };
+
+  const prev = () => {
+    soundFx.playClick();
+    if (idx > 0) {
+      setIdx((v) => v - 1);
+    }
   };
 
   return (
@@ -71,9 +83,26 @@ export const BriefingModal: React.FC = () => {
         <div className="mt-8 flex items-center justify-between">
           <span className="text-[11px] text-[#8B93A9]">{idx + 1} / {slides.length}</span>
           <div className="flex gap-5 text-[12px] font-semibold tracking-[0.15em]">
-            <button id="btn-briefing-map-return" onClick={closeBriefing} className="text-[#8B93A9] hover:text-[#F2F5FA] transition-colors cursor-pointer">FILE</button>
-            <button id="btn-briefing-skip-to-challenge" onClick={enterChallenge} className="text-[#8B93A9] hover:text-[#5ED6E3] transition-colors cursor-pointer">SKIP</button>
-            <button id="btn-briefing-next" onClick={next} className="text-[#5ED6E3] border-b border-[#5ED6E3] pb-0.5 hover:brightness-125 cursor-pointer">
+            <button
+              id="btn-briefing-prev"
+              onClick={prev}
+              disabled={idx === 0}
+              className="text-[#8B93A9] hover:text-[#F2F5FA] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              ← PREV
+            </button>
+            <button
+              id="btn-briefing-skip-to-challenge"
+              onClick={enterChallenge}
+              className="text-[#8B93A9] hover:text-[#5ED6E3] transition-colors cursor-pointer"
+            >
+              SKIP
+            </button>
+            <button
+              id="btn-briefing-next"
+              onClick={next}
+              className="text-[#5ED6E3] border-b border-[#5ED6E3] pb-0.5 hover:brightness-125 cursor-pointer"
+            >
               {idx < slides.length - 1 ? 'NEXT →' : 'FACE IT →'}
             </button>
           </div>

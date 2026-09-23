@@ -15,6 +15,7 @@ export const DashboardView: React.FC = () => {
   } = useGame();
 
   const [pendingSwitch, setPendingSwitch] = useState<PathId | null>(null);
+  const [pendingCommit, setPendingCommit] = useState<PathId | null>(null);
 
   const activePath = paths.find((p) => p.isActive) ?? null;
   const activeIsComplete = activePath
@@ -108,7 +109,7 @@ export const DashboardView: React.FC = () => {
       return (
         <button
           id={`btn-enter-path-${code.toLowerCase()}`}
-          onClick={() => choosePath(code)}
+          onClick={() => setPendingCommit(code)}
           disabled={busy}
           className="mt-3 w-full px-5 py-2.5 text-[12px] font-bold tracking-[0.2em] text-[#06232A] cursor-pointer hover:brightness-110 transition-all shadow-[0_0_15px_rgba(0,0,0,0.4)]"
           style={{ background: TONE[code] }}
@@ -141,7 +142,7 @@ export const DashboardView: React.FC = () => {
     }
 
     // Active path is in progress (NOT completed yet).
-    // The other path is locked for free switch, but can be switched in-between for a penalty.
+    // The other path is locked for free switch, but can be unlocked in-between for 1,000 points.
     return (
       <div className="mt-3 flex flex-col gap-1.5">
         <button
@@ -149,10 +150,10 @@ export const DashboardView: React.FC = () => {
           disabled={busy}
           className="w-full px-4 py-2 border text-[10.5px] font-bold tracking-[0.15em] cursor-pointer hover:bg-[#E84D7E]/10 disabled:opacity-40 text-[#E84D7E] border-[#E84D7E]/50"
         >
-          SWITCH IN-BETWEEN (80%)
+          UNLOCK IN-BETWEEN (-1000 PTS)
         </button>
         <div className="text-[9px] text-center text-[#9BA6BC] font-medium tracking-wider">
-          🔒 LOCKED FOR FREE (FINISH PATH {chosenPath} FIRST)
+          🔒 LOCKED FOR FREE (COSTS 1,000 PTS TO UNLOCK IN-BETWEEN)
         </div>
       </div>
     );
@@ -179,13 +180,7 @@ export const DashboardView: React.FC = () => {
           </div>
         )}
 
-        {activePath && rewardMultiplier < 1 && (
-          <div className="mb-3 border border-[#E84D7E]/40 bg-[#E84D7E]/[0.05] px-5 py-3 text-[12px] tracking-[0.1em] text-[#E84D7E]">
-            PATH {activePath.code} PENALISED — REWARDS AT {Math.round(rewardMultiplier * 100)}%
-            {' · '}
-            {skips.used} OF {skips.quota} SKIPS SPENT
-          </div>
-        )}
+
 
         <section>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -276,12 +271,45 @@ export const DashboardView: React.FC = () => {
         )}
       </div>
 
+      {pendingCommit && (
+        <DashboardOverlay title={`CONFIRM PATH SELECTION`} onClose={() => setPendingCommit(null)}>
+          <p className="font-lore italic text-[19px] leading-relaxed text-[#F2F5FA]">
+            “Commit your team to Path {pendingCommit}?”
+          </p>
+          <p className="mt-3 text-[13px] leading-relaxed text-[#9AA2B5]">
+            Choosing Path <b className="text-[#5ED6E3]">{pendingCommit} ({paths.find((p) => p.code === pendingCommit)?.name})</b> will unlock its initial challenges for your team.
+          </p>
+          <p className="mt-3 text-[12px] leading-relaxed text-[#A6B2C8]">
+            Other paths will remain locked until you complete this path for free, or you can unlock them in-between for a 1,000 points cost.
+          </p>
+          <div className="mt-6 flex items-center justify-between">
+            <button
+              onClick={() => setPendingCommit(null)}
+              className="text-[11px] tracking-[0.2em] text-[#8B93A9] hover:text-[#F2F5FA] cursor-pointer transition-colors"
+            >
+              ← CANCEL
+            </button>
+            <button
+              id="btn-confirm-choose-path"
+              onClick={() => {
+                void choosePath(pendingCommit);
+                setPendingCommit(null);
+              }}
+              disabled={busy}
+              className="px-6 py-2.5 text-[#07090F] text-[12px] font-bold tracking-[0.2em] cursor-pointer bg-[#5ED6E3] hover:brightness-110"
+            >
+              CONFIRM & COMMIT TO PATH {pendingCommit} →
+            </button>
+          </div>
+        </DashboardOverlay>
+      )}
+
       {pendingSwitch && (
-        <DashboardOverlay title={switchIsFree ? "CHOOSE NEXT PATH (FREE)" : "IN-BETWEEN PATH SWITCH"} onClose={() => setPendingSwitch(null)}>
+        <DashboardOverlay title={switchIsFree ? "CHOOSE NEXT PATH (FREE)" : "UNLOCK PATH IN-BETWEEN (-1,000 PTS)"} onClose={() => setPendingSwitch(null)}>
           <p className="font-lore italic text-[19px] leading-relaxed text-[#F2F5FA]">
             {switchIsFree
               ? `“Path ${chosenPath} is complete! Enter Path ${pendingSwitch}?”`
-              : `“Leave Path ${chosenPath} in-between for Path ${pendingSwitch}?”`}
+              : `“Unlock Path ${pendingSwitch} in-between for 1,000 points?”`}
           </p>
           <p className="mt-3 text-[13px] leading-relaxed text-[#9AA2B5]">
             {switchIsFree ? (
@@ -294,8 +322,10 @@ export const DashboardView: React.FC = () => {
             ) : (
               <>
                 You have not completed Path <b className="text-[#E84D7E]">{chosenPath}</b> yet.
-                Switching in-between costs points penalty: Path <b className="text-[#E84D7E]">{pendingSwitch}</b> will pay{' '}
-                <b className="text-[#E84D7E]">80% rewards</b> for its whole run. Complete Path {chosenPath} to unlock Path {pendingSwitch} for FREE!
+                Unlocking Path <b className="text-[#E84D7E]">{pendingSwitch}</b> in-between will deduct{' '}
+                <b className="text-[#E84D7E]">1,000 points</b> from your team's score. Points can go negative.
+                Rewards on Path <b className="text-[#5ED6E3]">{pendingSwitch}</b> remain at full 100% value.
+                To unlock for FREE (0 points deducted), finish Path {chosenPath} first!
               </>
             )}
           </p>
@@ -318,7 +348,7 @@ export const DashboardView: React.FC = () => {
                 switchIsFree ? 'bg-[#5ED6E3] hover:brightness-110' : 'bg-[#E84D7E] hover:brightness-110'
               }`}
             >
-              {switchIsFree ? `ENTER PATH ${pendingSwitch} (FREE) →` : `SWITCH IN-BETWEEN (80%) →`}
+              {switchIsFree ? `ENTER PATH ${pendingSwitch} (FREE) →` : `UNLOCK FOR 1,000 PTS →`}
             </button>
           </div>
         </DashboardOverlay>

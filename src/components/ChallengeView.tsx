@@ -65,7 +65,7 @@ export const ChallengeView: React.FC = () => {
   const diff = DIFFICULTY_META[activeChallenge.difficulty];
   const solved = activeChallenge.status === 'solved';
   const skipped = activeChallenge.status === 'skipped';
-  const closed = solved || skipped;
+  const closed = solved;
 
   // Siblings for prev/next come from the whole path so the arrows still work
   // across nodes that are revealed but not adjacent in the open set.
@@ -93,8 +93,12 @@ export const ChallengeView: React.FC = () => {
       setStatus({ type: 'error', message: r.message });
       return;
     }
-    if (next && next.id) navigateTo('CHALLENGE', next.slot);
-    else navigateTo('MAP');
+    if (next && next.id) {
+      navigateTo('CHALLENGE', next.slot);
+      openBriefing(next.slot);
+    } else {
+      navigateTo('MAP');
+    }
   };
 
   const buyHint = async (hint: Hint) => {
@@ -123,13 +127,24 @@ export const ChallengeView: React.FC = () => {
               </button>
             )}
             <button onClick={() => prev && navigateTo('CHALLENGE', prev.slot)} disabled={!prev} className="disabled:opacity-30 hover:text-[#F2F5FA] cursor-pointer">←</button>
-            <button onClick={() => next && navigateTo('CHALLENGE', next.slot)} disabled={!next} className="disabled:opacity-30 hover:text-[#F2F5FA] cursor-pointer">→</button>
+            <button
+              onClick={() => {
+                if (next) {
+                  navigateTo('CHALLENGE', next.slot);
+                  openBriefing(next.slot);
+                }
+              }}
+              disabled={!next}
+              className="disabled:opacity-30 hover:text-[#F2F5FA] cursor-pointer"
+            >
+              →
+            </button>
           </span>
         </div>
 
         <div className="mt-10 text-[11px] font-semibold tracking-[0.25em]" style={{ color: tone }}>
           {activeChallenge.slot} · {activeChallenge.category}
-          {solved ? ' · HELD ✓' : skipped ? ' · SKIPPED' : ''}
+          {solved ? ' · HELD ✓' : skipped ? ' · SKIPPED (STILL SOLVABLE)' : ''}
         </div>
         <h1 className="mt-3 font-display uppercase tracking-wide text-3xl sm:text-5xl leading-tight text-[#F2F5FA]">
           {activeChallenge.title}
@@ -144,7 +159,7 @@ export const ChallengeView: React.FC = () => {
           {/* The live price, priced by the server. The path multiplier is
               applied on top of it at solve time. */}
           <span className="text-[#F2F5FA]">
-            · {Math.round(activeChallenge.currentPoints * effectiveMultiplier)} PTS
+            · {activeChallenge.currentPoints} PTS
           </span>
           {activeChallenge.currentPoints < activeChallenge.points && (
             <span className="text-[#8B93A9]">
@@ -155,9 +170,7 @@ export const ChallengeView: React.FC = () => {
           {activeChallenge.solves === 0 && (
             <span className="text-[#E0A83E]">· UNSOLVED — FIRST BLOOD</span>
           )}
-          {effectiveMultiplier < 1 && (
-            <span className="text-[#E84D7E]">· ×{effectiveMultiplier.toFixed(2)} PATH PENALTY</span>
-          )}
+
           {activeChallenge.maxAttempts !== null && (
             <span className="text-[#E0A83E]">· MAX {activeChallenge.maxAttempts} ATTEMPTS</span>
           )}
@@ -360,7 +373,7 @@ export const ChallengeView: React.FC = () => {
                 className="text-[9px] tracking-[0.25em]"
                 style={{ color: flagHover ? GOLD : `${GOLD}77` }}
               >
-                {closed ? 'SEALED' : 'AWAITING INPUT'}
+                {solved ? 'SEALED & SCORED' : skipped ? 'SKIPPED — STILL SOLVABLE' : 'AWAITING INPUT'}
               </div>
             </div>
             <div
@@ -391,9 +404,14 @@ export const ChallengeView: React.FC = () => {
             </div>
           </div>
 
-          {closed && (
-            <div className="mt-4 text-[12px] text-[#5A6379]">
-              {solved ? 'Already held by your team.' : 'Skipped — this node is closed and scored zero.'}
+          {solved && (
+            <div className="mt-4 text-[12px] text-[#5ED6E3]">
+              Already held by your team.
+            </div>
+          )}
+          {skipped && !solved && (
+            <div className="mt-4 text-[12px] text-[#E0A83E]">
+              This challenge was skipped to advance the path, but remains open. Your team can solve it anytime to earn points.
             </div>
           )}
           {status.type !== 'idle' && (
@@ -404,7 +422,10 @@ export const ChallengeView: React.FC = () => {
           {status.type === 'success' && next && next.id && (
             <button
               type="button"
-              onClick={() => navigateTo('CHALLENGE', next.slot)}
+              onClick={() => {
+                navigateTo('CHALLENGE', next.slot);
+                openBriefing(next.slot);
+              }}
               className="mt-3 text-[12px] underline underline-offset-4 cursor-pointer"
               style={{ color: tone }}
             >
@@ -412,14 +433,13 @@ export const ChallengeView: React.FC = () => {
             </button>
           )}
 
-          {!closed && (
+          {!solved && !skipped && (
             <div className="mt-6">
               {confirmSkip ? (
                 <div className="border border-[#E84D7E]/40 bg-[#E84D7E]/[0.05] px-4 py-3">
                   <p className="text-[12px] leading-relaxed text-[#C6CCDA]">
-                    Skipping closes {activeChallenge.slot} for <b>zero points</b> and drops every
-                    reward on Path {activeChallenge.pathId} to <b>80%</b> for the rest of the run.
-                    You have <b>{skips.remaining}</b> of {skips.quota} skips left.
+                    Skipping {activeChallenge.slot} advances the path and <b>deducts 150 points</b> from your
+                    team's score. Points can go negative. This node is not closed — your team can return and solve it anytime. You have <b>{skips.remaining}</b> of {skips.quota} skips left.
                   </p>
                   <div className="mt-3 flex items-center gap-5 text-[11px] tracking-[0.2em]">
                     <button onClick={() => setConfirmSkip(false)} className="text-[#A6B2C8] hover:text-[#F2F5FA] font-medium transition-colors cursor-pointer">

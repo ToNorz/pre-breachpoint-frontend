@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiSpinWheelResult, ApiSpinWheelStatus } from '../services/api';
-import tetraWhizardLogo from '../assets/images/tetraWhizardLogo.png';
+import tetraWizardLogo from '../assets/images/tetraWizardLogo.png';
 
 export interface SpinWheelModalProps {
   eventId: string;
@@ -100,7 +100,7 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({
   isOpen,
   onClose,
   onHintUnlocked,
-  companyName = 'TETRA WHIZARD PRESENTS',
+  companyName = 'TETRA WIZARD PRESENTS',
   companyLogoUrl,
 }) => {
   const [status, setStatus] = useState<ApiSpinWheelStatus | null>(null);
@@ -333,7 +333,7 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({
       style={{ overflow: 'hidden' }}
     >
       <div
-        className="w-full max-w-[490px] border border-[#5ED6E3]/40 bg-[#07090F] p-4 sm:p-5 shadow-[0_0_50px_rgba(94,214,227,0.18)] relative select-none"
+        className="w-full max-w-[580px] sm:max-w-[620px] border border-[#5ED6E3]/40 bg-[#07090F] p-4 sm:p-5 shadow-[0_0_60px_rgba(94,214,227,0.22)] relative select-none"
         onClick={(e) => e.stopPropagation()}
         style={{ overflow: 'hidden' }}
       >
@@ -414,21 +414,17 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({
         {activeTab === 'wheel' ? (
           <div className="mt-2.5 flex flex-col items-center">
             {/* Wheel Canvas & Pointer Container */}
-            <div className="relative w-[230px] h-[230px] sm:w-[240px] sm:h-[240px] flex items-center justify-center my-2">
-              {/* Outer Glowing Ring & Tick Markers */}
+            <div className="relative w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] flex items-center justify-center my-2.5">
+              {/* Outer Glowing Ring & Tick Markers (Original color retained, only needle shifts color) */}
               <div
-                className="absolute inset-0 rounded-full border-2 transition-all duration-300 pointer-events-none"
-                style={{
-                  borderColor: spinning ? handleColor : '#1E2536',
-                  boxShadow: spinning ? `0 0 30px ${handleColor}66` : '0 0 15px rgba(30,37,54,0.3)',
-                }}
+                className="absolute inset-0 rounded-full border-2 border-[#1E2536] shadow-[0_0_18px_rgba(30,37,54,0.35)] pointer-events-none"
               />
 
               {/* Top Pointer Arrow - Cybernetic Indicator Needle (NO DOT, dynamically changes color while spinning) */}
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center pointer-events-none">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center pointer-events-none">
                 <svg
                   viewBox="0 0 32 44"
-                  className="w-7 h-10 transition-transform duration-100"
+                  className="w-8 h-11 transition-transform duration-100"
                   style={{
                     filter: `drop-shadow(0 0 10px ${handleColor})`,
                     transform: tickActive ? 'translateY(1.5px) scale(1.06)' : 'translateY(0) scale(1)',
@@ -563,11 +559,11 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({
                 </svg>
               </div>
 
-              {/* Center Hub — Tetra Whizard Logo Space */}
-              <div className="absolute z-10 w-20 h-20 sm:w-22 sm:h-22 rounded-full border-2 border-[#5ED6E3]/80 bg-[#07090F] shadow-[0_0_20px_rgba(94,214,227,0.4)] flex flex-col items-center justify-center p-1 text-center select-none overflow-hidden group">
+              {/* Center Hub — Tetra Wizard Logo Space */}
+              <div className="absolute z-10 w-24 h-24 sm:w-28 sm:h-28 rounded-full border-2 border-[#5ED6E3]/80 bg-[#07090F] shadow-[0_0_25px_rgba(94,214,227,0.45)] flex flex-col items-center justify-center p-1.5 text-center select-none overflow-hidden group">
                 <img
-                  src={companyLogoUrl || tetraWhizardLogo}
-                  alt="Tetra Whizard Logo"
+                  src={companyLogoUrl || tetraWizardLogo}
+                  alt="Tetra Wizard Logo"
                   className="w-full h-full object-cover rounded-full filter drop-shadow-[0_0_8px_rgba(94,214,227,0.5)] transition-transform duration-300 group-hover:scale-105"
                 />
               </div>
@@ -641,19 +637,14 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({
                   <button
                     type="button"
                     disabled
-                    className="w-full py-2 px-5 border text-black font-display font-bold text-[11.5px] tracking-[0.22em] transition-all shadow-[0_0_20px_rgba(94,214,227,0.3)] flex items-center justify-center gap-2 cursor-wait"
-                    style={{
-                      borderColor: handleColor,
-                      backgroundColor: `${handleColor}25`,
-                      color: handleColor,
-                    }}
+                    className="w-full py-2 px-5 border border-[#5ED6E3] bg-[#5ED6E3]/15 text-[#5ED6E3] font-display font-bold text-[11.5px] tracking-[0.22em] transition-all shadow-[0_0_20px_rgba(94,214,227,0.3)] flex items-center justify-center gap-2 cursor-wait"
                   >
-                    <span className="w-2 h-2 rounded-full animate-ping" style={{ backgroundColor: handleColor }} />
+                    <span className="w-2 h-2 rounded-full bg-[#5ED6E3] animate-ping" />
                     ROTATING QUANTUM MATRIX…
                   </button>
                   <div className="flex items-center justify-between w-full text-[9.5px] font-mono text-[#8B93A9]">
                     <span>CALIBRATING ROTOR TELEMETRY…</span>
-                    <span className="font-bold font-mono animate-pulse" style={{ color: handleColor }}>
+                    <span className="font-bold font-mono text-[#5ED6E3] animate-pulse">
                       ROTATING
                     </span>
                   </div>
@@ -681,7 +672,7 @@ export const SpinWheelModal: React.FC<SpinWheelModalProps> = ({
           </div>
         ) : (
           /* Audit History Tab */
-          <div className="mt-2.5 space-y-1.5 h-[316px] overflow-y-auto pr-1">
+          <div className="mt-2.5 space-y-1.5 h-[390px] overflow-y-auto pr-1">
             <div className="text-[9px] tracking-[0.2em] font-mono text-[#8B93A9] mb-1">
               TEAM SPIN EVENT LEDGER (MAX 10 RECORDED):
             </div>

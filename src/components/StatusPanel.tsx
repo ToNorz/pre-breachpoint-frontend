@@ -27,9 +27,6 @@ export const StatusPanel: React.FC = () => {
           {skips.quota > 0 && (
             <span className="text-[#A6B2C8]">SKIPS <b className="text-[#F2F5FA] font-bold">{skips.remaining}/{skips.quota}</b></span>
           )}
-          {rewardMultiplier < 1 && (
-            <span className="text-[#E84D7E] font-bold px-2 py-0.5 border border-[#E84D7E]/40 bg-[#E84D7E]/10">×{rewardMultiplier.toFixed(2)} PATH PENALTY</span>
-          )}
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <button

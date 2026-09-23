@@ -45,11 +45,19 @@ export const PathTrail: React.FC = () => {
       openBriefing(node.slot);
       return;
     }
-    if (node.status === 'solved' || node.status === 'skipped') {
+    if (node.status === 'solved') {
       notify(
         'info',
         `${node.slot} COMPLETED`,
-        'Your team has already closed this challenge.',
+        'Your team has already solved this challenge.',
+      );
+      return;
+    }
+    if (node.status === 'skipped') {
+      notify(
+        'info',
+        `${node.slot} SKIPPED`,
+        'This node was skipped, but your team can return and solve it anytime.',
       );
       return;
     }
@@ -140,9 +148,9 @@ export const PathTrail: React.FC = () => {
                   )}
                   <circle
                     r="26"
-                    fill={held ? `${color}2E` : '#0B0E16'}
-                    stroke={held || isNext ? color : wasSkipped ? '#E84D7E88' : '#455273'}
-                    strokeWidth={held || isNext ? 2.2 : 1.4}
+                    fill={held ? `${color}2E` : wasSkipped ? '#E0A83E1A' : '#0B0E16'}
+                    stroke={held || isNext ? color : wasSkipped ? '#E0A83E' : '#455273'}
+                    strokeWidth={held || isNext ? 2.2 : wasSkipped ? 1.8 : 1.4}
                     opacity={locked && !held ? 0.75 : 1}
                   />
                   <text
@@ -150,10 +158,10 @@ export const PathTrail: React.FC = () => {
                     textAnchor="middle"
                     fontSize="16"
                     fontWeight="bold"
-                    fill={held || isNext ? '#F2F5FA' : !revealed ? '#8B93A9' : '#C6CCDA'}
+                    fill={held || isNext ? '#F2F5FA' : wasSkipped ? '#E0A83E' : !revealed ? '#8B93A9' : '#C6CCDA'}
                     fontFamily="IBM Plex Mono"
                   >
-                    {held ? '●' : wasSkipped ? '–' : !revealed ? '×' : String(c.index).padStart(2, '0')}
+                    {held ? '●' : wasSkipped ? '↷' : !revealed ? '×' : String(c.index).padStart(2, '0')}
                   </text>
                   <text
                     x={labelDx}
