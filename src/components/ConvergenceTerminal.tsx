@@ -397,7 +397,7 @@ export const ConvergenceTerminal: React.FC = () => {
                       disabled={busy || !flag.trim()}
                       className="text-[13px] font-bold tracking-[0.25em] text-[#06232A] bg-[#5ED6E3] hover:bg-[#7CE3EE] disabled:opacity-30 px-10 py-3.5 transition-colors cursor-pointer shadow-[0_0_20px_rgba(94,214,227,0.25)]"
                     >
-                      {busy ? 'CHECKING…' : `CLOSE THE MOUTH (+${convergence?.points ?? 500})`}
+                      {busy ? 'CHECKING…' : `CLOSE THE MOUTH (+${convergence?.points ?? 400})`}
                     </button>
 
                     {msg.type !== 'idle' && (
