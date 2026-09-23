@@ -161,7 +161,7 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div className="flex-1 bg-[#07090F] scan-faint">
-      <div className="max-w-5xl mx-auto px-5 sm:px-8 py-10">
+      <div className="w-full mx-auto px-5 sm:px-8 py-10">
         <WelcomeGate />
 
         {activePath && activeIsComplete && (
@@ -200,7 +200,7 @@ export const DashboardView: React.FC = () => {
                   <div className="text-[10.5px] text-[#8B93A9] mt-1">
                     KEY {skin.keyNumber} ({path ? FRAGMENT_LABEL[path.delivers] : '—'}) · Led by {skin.lead}
                   </div>
-                  <p className="mt-2 font-lore italic text-[14px] text-[#C6CCDA] leading-snug line-clamp-4">
+                  <p className="mt-3 font-lore italic text-[16px] text-[#C6CCDA] leading-relaxed">
                     {path?.introNarration ?? 'Awaiting transmission.'}
                   </p>
                   <div className="mt-3 text-[11px] text-[#A6B2C8]">
