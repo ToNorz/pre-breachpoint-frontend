@@ -16,8 +16,20 @@ export default defineConfig(({ mode }) => {
       ],
     },
     server: {
+      host: true,
+      allowedHosts: true,
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      proxy: {
+        // Proxy all backend API routes to the backend server.
+        // This lets a single ngrok tunnel (frontend) handle everything.
+        '/auth': 'http://localhost:8080',
+        '/teams': 'http://localhost:8080',
+        '/board': 'http://localhost:8080',
+        '/challenges': 'http://localhost:8080',
+        '/scoreboard': 'http://localhost:8080',
+        '/admin': 'http://localhost:8080',
+      },
     },
   };
 });

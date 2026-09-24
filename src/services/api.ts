@@ -3,7 +3,10 @@
  */
 
 function normalizeApiBase(raw: string | undefined): string {
-  if (!raw) return 'http://localhost:8080';
+  // undefined = env var not set → default to localhost backend
+  // empty string = explicitly empty → same-origin (use Vite proxy / ngrok)
+  if (raw === undefined) return 'http://localhost:8080';
+  if (!raw) return '';
   let trimmed = raw.trim().replace(/\/$/, '');
   if (!trimmed) return '';
   if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.startsWith('/')) {
