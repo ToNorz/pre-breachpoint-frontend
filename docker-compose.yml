@@ -1,85 +1,11 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: breachpoint
-      POSTGRES_DB: breachpoint
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a unique POSTGRES_PASSWORD in .env}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U breachpoint -d breachpoint"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  migrate:
-    image: ghcr.io/csa-tech-team/breachpoint-backend:${BACKEND_IMAGE_TAG:-latest}
-    # Required while the tags are mutable (:latest): without it Docker reuses
-    # whatever copy of the tag the host already has and a redeploy ships nothing.
-    pull_policy: always
-    restart: "no"
-    command: ["bun", "run", "db:migrate"]
-    environment:
-      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD:?Set a unique POSTGRES_PASSWORD in .env}@postgres:5432/breachpoint
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  seed:
-    image: ghcr.io/csa-tech-team/breachpoint-backend:${BACKEND_IMAGE_TAG:-latest}
-    pull_policy: always
-    restart: "no"
-    command: ["bun", "run", "db:seed"]
-    environment:
-      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD:?Set a unique POSTGRES_PASSWORD in .env}@postgres:5432/breachpoint
-      ADMIN_1_PASSWORD: ${ADMIN_1_PASSWORD:?Set a unique ADMIN_1_PASSWORD in .env}
-      ADMIN_2_PASSWORD: ${ADMIN_2_PASSWORD:?Set a unique ADMIN_2_PASSWORD in .env}
-      ADMIN_3_PASSWORD: ${ADMIN_3_PASSWORD:?Set a unique ADMIN_3_PASSWORD in .env}
-      AUTO_PUBLISH: ${AUTO_PUBLISH:-true}
-      EVENT_HOURS: ${EVENT_HOURS:-48}
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-
-  backend:
-    image: ghcr.io/csa-tech-team/breachpoint-backend:${BACKEND_IMAGE_TAG:-latest}
-    pull_policy: always
-    restart: unless-stopped
-    environment:
-      PORT: "8080"
-      HOST: 0.0.0.0
-      DATABASE_URL: postgres://breachpoint:${POSTGRES_PASSWORD:?Set a unique POSTGRES_PASSWORD in .env}@postgres:5432/breachpoint
-      JWT_SECRET: ${JWT_SECRET:?Set a random JWT_SECRET in .env}
-      FRONTEND_URL: ${FRONTEND_ORIGIN:?Set the exact frontend origin in .env}
-    ports:
-      - "127.0.0.1:32082:8080"
-    depends_on:
-      seed:
-        condition: service_completed_successfully
-    healthcheck:
-      test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:8080/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-
   frontend:
-    image: ghcr.io/csa-tech-team/breachpoint-frontend:${FRONTEND_IMAGE_TAG:-latest}
-    pull_policy: always
+    build: 
+      context: .
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
     restart: unless-stopped
     ports:
-      - "127.0.0.1:32081:3000"
-    depends_on:
-      backend:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-
-volumes:
-  postgres_data:
-    name: breachpoint_postgres_data
+      - "3000:3000"
+    env_file:
+      - .env

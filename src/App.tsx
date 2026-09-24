@@ -2,27 +2,20 @@ import React from 'react';
 import { GameProvider, useGame } from './context/GameContext';
 import { Header } from './components/Header';
 import { StatusPanel } from './components/StatusPanel';
-import { GateView } from './components/GateView';
 import { LandingView } from './components/LandingView';
 import { TeamGate } from './components/TeamGate';
-import { EventWindowView } from './components/EventWindowView';
 import { DashboardView } from './components/DashboardView';
 import { TeamView } from './components/TeamView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
-import { AdminEvents } from './components/admin/AdminEvents';
 import { AdminChallenges } from './components/admin/AdminChallenges';
-import { AdminGlitches } from './components/admin/AdminGlitches';
 
 import { ChallengeView } from './components/ChallengeView';
-
 import { LeaderboardView } from './components/LeaderboardView';
 import { ToastBanner } from './components/ToastBanner';
-import { TimeGlitch } from './components/TimeGlitch';
 
 import { AdminTeams } from './components/admin/AdminTeams';
 import { AdminActivity } from './components/admin/AdminActivity';
 import { AdminLeaderboard } from './components/admin/AdminLeaderboard';
-import { AdminSpinWheel } from './components/admin/AdminSpinWheel';
 
 const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, navigateTo } = useGame();
@@ -79,17 +72,7 @@ const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 const AppContent: React.FC = () => {
-  const { phase, bootError, retryBoot, currentView, currentUser, navigateTo, glitchEndsAt, refresh, glitchSample } = useGame();
-
-  // The gate is public lore — readable before a session exists.
-  if (currentView === 'GATE') {
-    return (
-      <Shell>
-        <GateView />
-        <ToastBanner />
-      </Shell>
-    );
-  }
+  const { phase, bootError, retryBoot, currentView, currentUser, navigateTo } = useGame();
 
   if (phase === 'loading') return <BootScreen title="ESTABLISHING UPLINK…" />;
 
@@ -112,16 +95,13 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Admin console — accessible in any phase as long as the user is authenticated and admin.
+  // Admin console
   if (isAdminView(currentView) && currentUser?.isAdmin) {
     const renderAdminView = () => {
       switch (currentView) {
-        case 'ADMIN_EVENTS': return <AdminEvents />;
         case 'ADMIN_CHALLENGES': return <AdminChallenges />;
-        case 'ADMIN_GLITCHES': return <AdminGlitches />;
         case 'ADMIN_TEAMS': return <AdminTeams />;
         case 'ADMIN_ACTIVITY': return <AdminActivity />;
-        case 'ADMIN_SPIN_WHEEL': return <AdminSpinWheel />;
         case 'ADMIN_LEADERBOARD': return <AdminLeaderboard />;
         default: return <AdminDashboard />;
       }
@@ -129,21 +109,10 @@ const AppContent: React.FC = () => {
     return <AdminShell>{renderAdminView()}</AdminShell>;
   }
 
-  // Non-admin trying to access admin routes — bounce to dashboard.
+  // Non-admin trying to access admin routes
   if (isAdminView(currentView)) {
     navigateTo('DASHBOARD');
     return null;
-  }
-
-  // Outside the event window there is nothing to play, but teams can still be
-  // formed before the gun — so the lobby yields to the team gate on request.
-  if (phase === 'pending' || phase === 'ended') {
-    return (
-      <Shell>
-        {phase === 'pending' && currentView === 'TEAM' ? <TeamGate /> : <EventWindowView state={phase} />}
-        <ToastBanner />
-      </Shell>
-    );
   }
 
   if (phase === 'no-team') {
@@ -158,9 +127,7 @@ const AppContent: React.FC = () => {
   const renderCurrentView = () => {
     switch (currentView) {
       case 'TEAM': return <TeamView />;
-
       case 'CHALLENGE': return <ChallengeView />;
-
       case 'BOARD': return <LeaderboardView />;
       default: return <DashboardView />;
     }
@@ -174,16 +141,6 @@ const AppContent: React.FC = () => {
         <main className="flex-1 flex flex-col">{renderCurrentView()}</main>
       </div>
       <ToastBanner />
-      {/* Glitch windows are scheduled server-side and arrive on the board. When
-          one closes, re-read it: decay is live again and every price changes. */}
-      <TimeGlitch
-        active={glitchEndsAt !== null}
-        endsAt={glitchEndsAt ?? 0}
-        sample={glitchSample}
-        onReset={() => {
-          window.setTimeout(() => void refresh(), 1500);
-        }}
-      />
     </div>
   );
 };

@@ -11,7 +11,6 @@ interface MergedLeaderboardEntry {
   score: number;
   solves: number;
   lastSolveAt: string | null;
-  banned: boolean;
   memberCount: number;
   joinCode: string;
 }
@@ -30,41 +29,34 @@ const relativeTime = (iso: string | null): string => {
 const MEDAL_COLORS = ['#E0A83E', '#5ED6E3', '#E84D7E'];
 
 export const AdminLeaderboard: React.FC = () => {
-  const { adminEvent, notify } = useGame();
+  const { notify } = useGame();
   const [entries, setEntries] = useState<MergedLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'top10' | 'top25' | 'banned'>('all');
-  const [isFrozen, setIsFrozen] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [filterType, setFilterType] = useState<'all' | 'top10' | 'top25'>('all');
 
   const loadData = async (silent = false) => {
-    if (!adminEvent) return;
     if (!silent) setLoading(true);
     else setRefreshing(true);
 
     try {
       const [sb, teams] = await Promise.all([
-        api.scoreboard(adminEvent.id).catch(() => ({ frozen: false, frozenAt: null, entries: [] as ApiScoreboardEntry[] })),
-        api.adminListTeams(adminEvent.id).catch(() => [] as AdminTeamInfo[]),
+        api.scoreboard().catch(() => ({ entries: [] as ApiScoreboardEntry[] })),
+        api.adminListTeams().catch(() => [] as AdminTeamInfo[]),
       ]);
-
-      setIsFrozen(Boolean(sb.frozen));
 
       const teamMap = new Map<string, AdminTeamInfo>();
       teams.forEach((t) => teamMap.set(t.id, t));
 
-      // Build merged list
       const merged: MergedLeaderboardEntry[] = [];
       const seenIds = new Set<string>();
 
-      // First add teams with scoreboard entries (ranked)
       sb.entries.forEach((entry) => {
         const team = teamMap.get(entry.teamId);
         seenIds.add(entry.teamId);
-        const solves = Number(entry.solveCount ?? (entry as any).solves ?? (entry as any).solve_count ?? team?.solveCount ?? 0);
+        const solves = Number(entry.solveCount ?? 0);
         merged.push({
           rank: entry.rank,
           teamId: entry.teamId,
@@ -72,13 +64,11 @@ export const AdminLeaderboard: React.FC = () => {
           score: Number(entry.score) || 0,
           solves,
           lastSolveAt: entry.lastSolveAt,
-          banned: team?.banned ?? false,
           memberCount: team?.members?.length ?? 0,
           joinCode: team?.joinCode ?? '—',
         });
       });
 
-      // Then add any remaining teams that haven't scored yet
       teams.forEach((team) => {
         if (!seenIds.has(team.id)) {
           merged.push({
@@ -88,14 +78,12 @@ export const AdminLeaderboard: React.FC = () => {
             score: Number(team.score) || 0,
             solves: Number(team.solveCount ?? 0),
             lastSolveAt: null,
-            banned: team.banned,
             memberCount: team.members?.length ?? 0,
             joinCode: team.joinCode,
           });
         }
       });
 
-      // Sort by score descending, then solves descending, then earlier lastSolveAt ascending, then name
       merged.sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
         if (b.solves !== a.solves) return b.solves - a.solves;
@@ -107,7 +95,6 @@ export const AdminLeaderboard: React.FC = () => {
         return a.name.localeCompare(b.name);
       });
 
-      // Assign sequential contiguous rank numbers (1, 2, 3...)
       merged.forEach((item, idx) => {
         item.rank = idx + 1;
       });
@@ -123,42 +110,25 @@ export const AdminLeaderboard: React.FC = () => {
 
   useEffect(() => {
     void loadData();
-  }, [adminEvent]);
+  }, []);
 
-  // Live Auto-Refresh Timer (every 10 seconds)
   useEffect(() => {
-    if (!autoRefresh || !adminEvent) return;
+    if (!autoRefresh) return;
     const interval = setInterval(() => {
       void loadData(true);
     }, 10_000);
     return () => clearInterval(interval);
-  }, [autoRefresh, adminEvent]);
-
-  const toggleFreeze = async () => {
-    if (!adminEvent || busy) return;
-    setBusy(true);
-    try {
-      await api.adminPatchEvent(adminEvent.id, { isFrozen: !isFrozen });
-      notify('success', isFrozen ? 'BOARD UNFROZEN' : 'BOARD FROZEN', isFrozen ? 'Live rankings visible to players.' : 'Standings frozen for players.');
-      setIsFrozen(!isFrozen);
-      void loadData(true);
-    } catch (err: unknown) {
-      notify('error', 'FREEZE FAILED', err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setBusy(false);
-    }
-  };
+  }, [autoRefresh]);
 
   const exportCSV = () => {
     if (entries.length === 0) return;
-    const headers = ['Rank', 'Team Name', 'Score', 'Solves', 'Last Solve', 'Status', 'Members', 'Join Code'];
+    const headers = ['Rank', 'Team Name', 'Score', 'Solves', 'Last Solve', 'Members', 'Join Code'];
     const rows = entries.map((e) => [
       e.rank ?? '—',
       `"${e.name.replace(/"/g, '""')}"`,
       e.score,
       e.solves,
       e.lastSolveAt ? new Date(e.lastSolveAt).toISOString() : 'None',
-      e.banned ? 'BANNED' : 'ACTIVE',
       e.memberCount,
       e.joinCode,
     ]);
@@ -167,13 +137,12 @@ export const AdminLeaderboard: React.FC = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `leaderboard_${adminEvent?.name.toLowerCase().replace(/\s+/g, '_') ?? 'event'}.csv`);
+    link.setAttribute('download', `leaderboard_export.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // Filtered List
   const filtered = useMemo(() => {
     return entries.filter((e) => {
       if (search.trim()) {
@@ -185,7 +154,6 @@ export const AdminLeaderboard: React.FC = () => {
       }
       if (filterType === 'top10' && (e.rank === null || e.rank > 10)) return false;
       if (filterType === 'top25' && (e.rank === null || e.rank > 25)) return false;
-      if (filterType === 'banned' && !e.banned) return false;
       return true;
     });
   }, [entries, search, filterType]);
@@ -197,7 +165,6 @@ export const AdminLeaderboard: React.FC = () => {
     <>
       <AdminNav />
       <div className="max-w-6xl mx-auto px-6 py-8 scan-faint">
-        {/* Header Bar */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <div className="text-[9px] tracking-[0.3em] text-[#E0A83E] font-semibold">
@@ -205,11 +172,6 @@ export const AdminLeaderboard: React.FC = () => {
             </div>
             <h1 className="mt-1 font-display text-2xl tracking-wide text-[#F2F5FA] flex items-center gap-3">
               LIVE LEADERBOARD
-              {adminEvent && (
-                <span className="text-[13px] font-mono font-normal text-[#8B93A9]">
-                  — {adminEvent.name}
-                </span>
-              )}
             </h1>
             <div className="mt-1 flex items-center gap-3 text-[11px] text-[#5A6379]">
               <span>{entries.length} cells registered</span>
@@ -224,7 +186,6 @@ export const AdminLeaderboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Auto-Refresh Toggle */}
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
               className={`px-3 py-2 border text-[10px] tracking-[0.15em] font-semibold cursor-pointer transition-colors ${
@@ -236,7 +197,6 @@ export const AdminLeaderboard: React.FC = () => {
               AUTO-REFRESH: {autoRefresh ? 'ON' : 'OFF'}
             </button>
 
-            {/* Manual Refresh Button */}
             <button
               onClick={() => void loadData(true)}
               disabled={refreshing}
@@ -245,7 +205,6 @@ export const AdminLeaderboard: React.FC = () => {
               {refreshing ? 'REFRESHING…' : 'REFRESH NOW ↻'}
             </button>
 
-            {/* Export CSV */}
             <button
               onClick={exportCSV}
               disabled={entries.length === 0}
@@ -253,34 +212,9 @@ export const AdminLeaderboard: React.FC = () => {
             >
               EXPORT CSV ↓
             </button>
-
-            {/* Freeze Board Toggle */}
-            <button
-              onClick={toggleFreeze}
-              disabled={busy}
-              className={`px-4 py-2 text-[11px] font-bold tracking-[0.18em] cursor-pointer transition-all border ${
-                isFrozen
-                  ? 'bg-[#E0A83E]/20 border-[#E0A83E] text-[#E0A83E] hover:bg-[#E0A83E]/30'
-                  : 'border-[#1E2536] text-[#8B93A9] hover:border-[#E0A83E] hover:text-[#E0A83E]'
-              }`}
-            >
-              {isFrozen ? '■ BOARD FROZEN (CLICK TO UNFREEZE)' : 'FREEZE SCOREBOARD'}
-            </button>
           </div>
         </div>
 
-        {/* Freeze Notice Banner */}
-        {isFrozen && (
-          <div className="mt-4 border border-[#E0A83E]/40 bg-[#E0A83E]/10 p-3.5 flex items-center justify-between text-[11px] tracking-[0.15em] text-[#E0A83E]">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#E0A83E] animate-pulse" />
-              <span>SCOREBOARD IS CURRENTLY FROZEN FOR PLAYERS — OPERATIVES SEE STATIC STANDINGS AS OF THE FREEZE.</span>
-            </div>
-            <span className="font-bold">ADMIN VIEW IS ALWAYS LIVE</span>
-          </div>
-        )}
-
-        {/* Top 3 Podium Cards */}
         {entries.length > 0 && (
           <div className="mt-6">
             <div className="text-[9px] tracking-[0.3em] text-[#E0A83E] font-bold mb-3 flex items-center justify-between">
@@ -333,13 +267,12 @@ export const AdminLeaderboard: React.FC = () => {
           </div>
         )}
 
-        {/* Filter Controls & Search */}
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3 bg-[#0B0E16] border border-[#1E2536] p-3">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[9px] tracking-[0.25em] text-[#5A6379] mr-1">FILTER:</span>
-            {(['all', 'top10', 'top25', 'banned'] as const).map((f) => {
+            {(['all', 'top10', 'top25'] as const).map((f) => {
               const label =
-                f === 'all' ? 'ALL CELLS' : f === 'top10' ? 'TOP 10' : f === 'top25' ? 'TOP 25' : 'BANNED ONLY';
+                f === 'all' ? 'ALL CELLS' : f === 'top10' ? 'TOP 10' : 'TOP 25';
               return (
                 <button
                   key={f}
@@ -375,7 +308,6 @@ export const AdminLeaderboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Standings Table */}
         {loading ? (
           <div className="mt-8 text-center text-[11px] tracking-[0.3em] text-[#5A6379] py-12">
             SCANNING TELEMETRY & STANDINGS…
@@ -387,7 +319,6 @@ export const AdminLeaderboard: React.FC = () => {
                 <tr className="border-b border-[#1E2536] text-[9px] tracking-[0.2em] text-[#5A6379] bg-[#07090F]/60">
                   <th className="px-4 py-3 text-left w-16">RANK</th>
                   <th className="px-4 py-3 text-left">CELL / TEAM NAME</th>
-                  <th className="px-3 py-3 text-left">STATUS</th>
                   <th className="px-4 py-3 text-right">SCORE</th>
                   <th className="px-3 py-3 text-center">SOLVES</th>
                   <th className="px-4 py-3 text-left">LAST SOLVE</th>
@@ -403,9 +334,7 @@ export const AdminLeaderboard: React.FC = () => {
                     <tr
                       key={entry.teamId}
                       className="hover:bg-[#5ED6E3]/[0.03] transition-colors"
-                      style={entry.banned ? { opacity: 0.6 } : undefined}
                     >
-                      {/* Rank */}
                       <td className="px-4 py-3 font-mono font-bold whitespace-nowrap">
                         <span
                           className={`inline-block px-2 py-0.5 text-[11px] rounded border ${
@@ -419,15 +348,9 @@ export const AdminLeaderboard: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Team Name */}
                       <td className="px-4 py-3">
                         <div className="font-medium text-[#F2F5FA] flex items-center gap-2">
                           <span className="text-[13px]">{entry.name}</span>
-                          {entry.banned && (
-                            <span className="text-[9px] font-bold tracking-wider px-1.5 py-0.2 bg-[#E84D7E]/20 text-[#E84D7E] border border-[#E84D7E]/40 rounded">
-                              BANNED
-                            </span>
-                          )}
                         </div>
                         <div className="text-[10px] text-[#5A6379] font-mono mt-0.5 flex items-center gap-3">
                           <span>{entry.memberCount} operative{entry.memberCount === 1 ? '' : 's'}</span>
@@ -436,25 +359,10 @@ export const AdminLeaderboard: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Status */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <span
-                          className={`text-[10px] font-bold tracking-wider px-2 py-0.5 border rounded ${
-                            entry.banned
-                              ? 'border-[#E84D7E]/40 text-[#E84D7E] bg-[#E84D7E]/10'
-                              : 'border-[#5ED6E3]/40 text-[#5ED6E3] bg-[#5ED6E3]/10'
-                          }`}
-                        >
-                          {entry.banned ? 'BANNED' : 'ACTIVE'}
-                        </span>
-                      </td>
-
-                      {/* Score */}
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <div className="font-mono text-[14px] font-bold text-[#5ED6E3]">
                           {entry.score.toLocaleString()} <span className="text-[10px] text-[#5A6379]">PTS</span>
                         </div>
-                        {/* Progress bar towards leader */}
                         <div className="w-24 ml-auto h-1 bg-[#1E2536] rounded-full overflow-hidden mt-1">
                           <div
                             className="h-full bg-[#5ED6E3]"
@@ -463,12 +371,10 @@ export const AdminLeaderboard: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Solves */}
                       <td className="px-3 py-3 text-center font-mono font-semibold text-[#D5DBE7]">
                         {entry.solves}
                       </td>
 
-                      {/* Last Solve */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-[11px] text-[#D5DBE7] font-mono">
                           {relativeTime(entry.lastSolveAt)}

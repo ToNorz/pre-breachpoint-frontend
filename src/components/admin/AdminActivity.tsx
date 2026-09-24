@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
-import { api } from '../../services/api';
-import { AdminSubmissionLog } from '../../types';
+import { api, AdminSubmissionLog } from '../../services/api';
 import { AdminNav } from './AdminNav';
 
 export const AdminActivity: React.FC = () => {
-  const { adminEvent, notify } = useGame();
+  const { notify } = useGame();
   const [submissions, setSubmissions] = useState<AdminSubmissionLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -13,9 +12,8 @@ export const AdminActivity: React.FC = () => {
   const [search, setSearch] = useState('');
 
   const load = async () => {
-    if (!adminEvent) return;
     try {
-      const data = await api.adminListSubmissions(adminEvent.id, 100);
+      const data = await api.adminListSubmissions(100);
       setSubmissions(data);
     } catch (err: unknown) {
       notify('error', 'LOAD FAILED', err instanceof Error ? err.message : 'Could not fetch submissions.');
@@ -27,16 +25,15 @@ export const AdminActivity: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     void load();
-  }, [adminEvent]);
+  }, []);
 
-  // Periodic polling for live monitor
   useEffect(() => {
-    if (!autoRefresh || !adminEvent) return;
+    if (!autoRefresh) return;
     const interval = setInterval(() => {
       void load();
     }, 5000);
     return () => clearInterval(interval);
-  }, [autoRefresh, adminEvent]);
+  }, [autoRefresh]);
 
   const filtered = submissions.filter((s) => {
     if (filter === 'correct' && s.verdict !== 'correct') return false;
@@ -61,7 +58,7 @@ export const AdminActivity: React.FC = () => {
           <div>
             <div className="text-[9px] tracking-[0.3em] text-[#E0A83E]">■ LIVE TELEMETRY</div>
             <h1 className="mt-1 font-display text-xl tracking-wide text-[#F2F5FA]">
-              SUBMISSION AUDIT STREAM {adminEvent ? `— ${adminEvent.name}` : ''}
+              SUBMISSION AUDIT STREAM
             </h1>
             <div className="mt-1 text-[11px] text-[#5A6379]">
               Showing last {submissions.length} attempts · {correctCount} correct · {incorrectCount} incorrect
@@ -125,8 +122,6 @@ export const AdminActivity: React.FC = () => {
 
         {loading ? (
           <div className="mt-8 text-[11px] tracking-[0.3em] text-[#5A6379]">STREAMING AUDIT LOGS…</div>
-        ) : !adminEvent ? (
-          <div className="mt-8 text-[11px] tracking-[0.3em] text-[#E84D7E]">NO EVENT SELECTED</div>
         ) : filtered.length === 0 ? (
           <div className="mt-8 border border-[#1E2536] p-8 text-center text-[#5A6379] text-[12px]">
             {search || filter !== 'all'

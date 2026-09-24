@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useGame } from '../context/GameContext';
-import { TONE } from '../data/pathsData';
+import { api, ApiScoreboardEntry } from '../services/api';
 
 const relativeTime = (iso: string | null): string => {
   if (!iso) return '—';
@@ -13,28 +13,34 @@ const relativeTime = (iso: string | null): string => {
   return `${Math.floor(hours / 24)}d ago`;
 };
 
-/**
- * The scoreboard, read from `/events/:id/scoreboard`.
- *
- * It shows what the server publishes and nothing else: rank, team, score,
- * solve count, last solve. The per-path breakdown is only rendered for the
- * viewer's own team, because that is the only team whose path split the API
- * exposes — inventing the other columns is what the old mock did.
- */
 export const LeaderboardView: React.FC = () => {
-  const {
-    scoreboard, scoreboardFrozen, loadScoreboard, teamName,
-    pathScores, score, rank, paths, navigateTo,
-  } = useGame();
+  const { team, board, navigateTo } = useGame();
   const [q, setQ] = useState('');
+  const [entries, setEntries] = useState<ApiScoreboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void loadScoreboard();
-    const timer = setInterval(() => void loadScoreboard(), 30_000);
-    return () => clearInterval(timer);
-  }, [loadScoreboard]);
+    let mounted = true;
+    const load = async () => {
+      try {
+        const res = await api.scoreboard();
+        if (mounted) {
+          setEntries(res.entries || []);
+          setLoading(false);
+        }
+      } catch {
+        if (mounted) setLoading(false);
+      }
+    };
+    void load();
+    const timer = setInterval(() => void load(), 30_000);
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+    };
+  }, []);
 
-  const shown = scoreboard.filter((t) => t.name.toLowerCase().includes(q.toLowerCase()));
+  const shown = entries.filter((t) => t.displayName.toLowerCase().includes(q.toLowerCase()));
   const medal = ['#E0A83E', '#5ED6E3', '#E84D7E'];
 
   return (
@@ -44,18 +50,12 @@ export const LeaderboardView: React.FC = () => {
           <div className="text-[11px] tracking-[0.3em] text-[#5ED6E3] font-bold">■ OPERATIVE LEADERBOARD</div>
           <div className="text-[11.5px] tracking-[0.2em] font-semibold px-3 py-1 border border-[#1E2536] bg-[#0B0E16] text-[#C6CCDA] flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#5ED6E3] shadow-[0_0_6px_#5ED6E3]" />
-            <span className="text-[#5ED6E3] font-bold font-mono text-[13px]">{scoreboard.length}</span>
+            <span className="text-[#5ED6E3] font-bold font-mono text-[13px]">{entries.length}</span>
             <span>CELLS COMPETING</span>
           </div>
         </div>
 
-        {scoreboardFrozen && (
-          <div className="mb-4 border border-[#E0A83E]/40 bg-[#E0A83E]/[0.05] px-5 py-3 text-[11px] tracking-[0.15em] text-[#E0A83E]">
-            ■ BOARD FROZEN — STANDINGS AS OF THE FREEZE. YOUR SOLVES STILL COUNT.
-          </div>
-        )}
-
-        {/* your standing - highlighted blue box */}
+        {team && board && (
         <div className="border-2 border-[#5ED6E3] bg-gradient-to-r from-[#07131F]/90 via-[#0B0E16]/95 to-[#07131F]/90 shadow-[0_0_25px_rgba(94,214,227,0.18)] p-5 relative">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#1E2536] pb-3 mb-4">
             <div className="flex items-center gap-2.5">
@@ -65,7 +65,7 @@ export const LeaderboardView: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="text-[10px] tracking-[0.2em] text-[#A6B2C8] font-medium">STATUS:</span>
               <span className="text-[10px] font-bold tracking-[0.2em] px-2.5 py-0.5 border border-[#5ED6E3]/60 bg-[#5ED6E3]/15 text-[#5ED6E3]">
-                {rank !== null ? `RANK #${rank}` : 'UNRANKED'}
+                {board.rank !== null ? `RANK #${board.rank}` : 'UNRANKED'}
               </span>
             </div>
           </div>
@@ -74,7 +74,7 @@ export const LeaderboardView: React.FC = () => {
             <div>
               <div className="text-[11px] tracking-[0.2em] text-[#9BA6BC] font-medium">CELL NAME</div>
               <div className="mt-1 font-display text-2xl sm:text-3xl text-[#F2F5FA] font-bold tracking-wide flex items-center gap-3">
-                {teamName}
+                {team.name}
                 <span className="text-[9px] font-mono tracking-widest bg-[#5ED6E3] text-[#07090F] font-bold px-1.5 py-0.5">
                   YOU
                 </span>
@@ -83,29 +83,13 @@ export const LeaderboardView: React.FC = () => {
             <div className="text-right">
               <div className="text-[10px] tracking-[0.2em] text-[#9BA6BC] font-medium">TOTAL SCORE</div>
               <div className="mt-1 font-display text-3xl sm:text-4xl leading-none text-[#5ED6E3] font-bold drop-shadow-[0_0_12px_rgba(94,214,227,0.35)]">
-                {score.toLocaleString()} <span className="text-sm font-mono tracking-wider font-semibold text-[#8B93A9]">PTS</span>
+                {board.score.toLocaleString()} <span className="text-sm font-mono tracking-wider font-semibold text-[#8B93A9]">PTS</span>
               </div>
             </div>
           </div>
-
-          <div className="mt-4 pt-3 border-t border-[#1E2536]/80 flex flex-wrap items-center justify-between gap-3 text-[11px]">
-            <div className="flex flex-wrap gap-x-5 gap-y-1">
-              <span className="text-[#C6CCDA] font-semibold tracking-wider">PATH BREAKDOWN:</span>
-              {(['A'] as const).map((code) => {
-                const path = paths.find((p) => p.code === code);
-                const pts = pathScores.pathA;
-                return (
-                  <span key={code} className="font-mono font-medium" style={{ color: TONE[code] }}>
-                    PATH {code}: <b className="text-[#F2F5FA]">{pts.toLocaleString()}</b>
-                    <span className="text-[#9BA6BC]"> ({path?.solved ?? 0}/{path?.total ?? 0})</span>
-                  </span>
-                );
-              })}
-            </div>
-          </div>
         </div>
+        )}
 
-        {/* search & section header */}
         <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
           <div className="text-[11px] font-semibold tracking-[0.25em] text-[#C6CCDA]">
             GLOBAL RANKINGS
@@ -120,9 +104,10 @@ export const LeaderboardView: React.FC = () => {
           </div>
         </div>
 
-        {/* top three */}
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {scoreboard.slice(0, 3).map((t, i) => (
+          {entries.slice(0, 3).map((t, i) => {
+            const isMe = team?.id === t.teamId;
+            return (
             <div
               key={t.teamId}
               className="border border-[#1E2536] bg-[#0B0E16]/60 p-5"
@@ -131,7 +116,7 @@ export const LeaderboardView: React.FC = () => {
                 <span className="font-display text-[26px]" style={{ color: medal[i] }}>
                   {String(i + 1).padStart(2, '0')}
                 </span>
-                {t.isMe && (
+                {isMe && (
                   <span
                     className="text-[9px] font-bold tracking-[0.2em] px-2 py-0.5 bg-[#5ED6E3] text-[#07090F]"
                   >
@@ -139,15 +124,16 @@ export const LeaderboardView: React.FC = () => {
                   </span>
                 )}
               </div>
-              <div className="mt-1 text-[14px] font-semibold tracking-[0.06em] text-[#F2F5FA] truncate">{t.name}</div>
-              <div className="mt-1.5 text-[11px] text-[#A6B2C8] font-medium">{t.solves} SOLVES</div>
+              <div className="mt-1 text-[14px] font-semibold tracking-[0.06em] text-[#F2F5FA] truncate">{t.displayName}</div>
+              <div className="mt-1.5 text-[11px] text-[#A6B2C8] font-medium">{t.solveCount} SOLVES</div>
               <div className="mt-3 pt-3 border-t border-[#1E2536] flex items-end justify-end">
                 <span className="font-display text-[22px]" style={{ color: medal[i] }}>
-                  {t.points.toLocaleString()}
+                  {Number(t.score).toLocaleString()}
                 </span>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="mt-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -163,46 +149,56 @@ export const LeaderboardView: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {shown.map((t) => (
+                {shown.map((t) => {
+                  const isMe = team?.id === t.teamId;
+                  return (
                   <tr
                     key={t.teamId}
                     className={`border-b border-[#141A2B] transition-colors ${
-                      t.isMe
+                      isMe
                         ? 'bg-[#5ED6E3]/15 border-y-2 border-[#5ED6E3] shadow-[0_0_15px_rgba(94,214,227,0.15)]'
                         : 'hover:bg-[#0E1320]/60'
                     }`}
-                    style={t.isMe ? { boxShadow: 'inset 3px 0 0 #5ED6E3' } : {}}
+                    style={isMe ? { boxShadow: 'inset 3px 0 0 #5ED6E3' } : {}}
                   >
-                    <td className={`py-3.5 px-4 font-mono ${t.isMe ? 'text-[#5ED6E3] font-bold text-[13px]' : 'text-[#8B93A9]'}`}>
+                    <td className={`py-3.5 px-4 font-mono ${isMe ? 'text-[#5ED6E3] font-bold text-[13px]' : 'text-[#8B93A9]'}`}>
                       #{t.rank}
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
-                        <span className={t.isMe ? 'text-[#F2F5FA] font-bold text-[13.5px]' : 'text-[#D5DBE7] font-medium'}>
-                          {t.name}
+                        <span className={isMe ? 'text-[#F2F5FA] font-bold text-[13.5px]' : 'text-[#D5DBE7] font-medium'}>
+                          {t.displayName}
                         </span>
-                        {t.isMe && (
+                        {isMe && (
                           <span className="text-[9px] font-mono tracking-widest bg-[#5ED6E3] text-[#07090F] font-bold px-1.5 py-0.5 rounded-[1px]">
                             YOU
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className={`py-3.5 px-4 text-center font-mono ${t.isMe ? 'text-[#5ED6E3] font-semibold' : 'text-[#A6B2C8]'}`}>
-                      {t.solves}
+                    <td className={`py-3.5 px-4 text-center font-mono ${isMe ? 'text-[#5ED6E3] font-semibold' : 'text-[#A6B2C8]'}`}>
+                      {t.solveCount}
                     </td>
-                    <td className={`py-3.5 px-4 text-right font-mono font-bold ${t.isMe ? 'text-[#5ED6E3] text-[14px]' : 'text-[#F2F5FA]'}`}>
-                      {t.points.toLocaleString()} PTS
+                    <td className={`py-3.5 px-4 text-right font-mono font-bold ${isMe ? 'text-[#5ED6E3] text-[14px]' : 'text-[#F2F5FA]'}`}>
+                      {Number(t.score).toLocaleString()} PTS
                     </td>
                     <td className="py-3.5 px-4 text-right text-[#8B93A9] text-[11px] font-mono hidden md:table-cell">
-                      {relativeTime(t.lastSubmission)}
+                      {relativeTime(t.lastSolveAt)}
                     </td>
                   </tr>
-                ))}
-                {shown.length === 0 && (
+                  );
+                })}
+                {!loading && shown.length === 0 && (
                   <tr>
                     <td colSpan={5} className="py-8 px-4 text-center text-[#8B93A9]">
-                      {scoreboard.length === 0 ? 'No teams have scored yet.' : 'No team matches that name.'}
+                      {entries.length === 0 ? 'No teams have scored yet.' : 'No team matches that name.'}
+                    </td>
+                  </tr>
+                )}
+                {loading && (
+                  <tr>
+                    <td colSpan={5} className="py-8 px-4 text-center text-[#8B93A9]">
+                      Loading leaderboard...
                     </td>
                   </tr>
                 )}
@@ -220,9 +216,6 @@ export const LeaderboardView: React.FC = () => {
               >
                 BACK TO CHALLENGES →
               </button>
-            </div>
-            <div className="border border-[#1E2536] bg-[#0B0E16]/60 p-4 text-[10.5px] leading-relaxed tracking-[0.12em] text-[#A6B2C8]">
-              Challenge scores decay as more teams solve them, so early solves earn more points.
             </div>
           </div>
         </div>

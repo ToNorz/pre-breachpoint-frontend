@@ -5,7 +5,7 @@ import { AdminTeamInfo } from '../../types';
 import { AdminNav } from './AdminNav';
 
 export const AdminTeams: React.FC = () => {
-  const { adminEvent, notify } = useGame();
+  const { notify } = useGame();
   const [teams, setTeams] = useState<AdminTeamInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -13,10 +13,9 @@ export const AdminTeams: React.FC = () => {
   const [actionBusy, setActionBusy] = useState(false);
 
   const load = async () => {
-    if (!adminEvent) return;
     setLoading(true);
     try {
-      const data = await api.adminListTeams(adminEvent.id);
+      const data = await api.adminListTeams();
       setTeams(data);
     } catch (err: unknown) {
       notify('error', 'LOAD FAILED', err instanceof Error ? err.message : 'Could not fetch teams.');
@@ -27,31 +26,12 @@ export const AdminTeams: React.FC = () => {
 
   useEffect(() => {
     void load();
-  }, [adminEvent]);
-
-  const toggleBan = async (team: AdminTeamInfo) => {
-    if (!adminEvent) return;
-    setActionBusy(true);
-    try {
-      await api.adminPatchTeam(adminEvent.id, team.id, { banned: !team.banned });
-      notify(
-        'success',
-        team.banned ? 'TEAM UNBANNED' : 'TEAM BANNED',
-        `"${team.name}" status updated.`,
-      );
-      void load();
-    } catch (err: unknown) {
-      notify('error', 'ACTION FAILED', err instanceof Error ? err.message : 'Could not update team.');
-    } finally {
-      setActionBusy(false);
-    }
-  };
+  }, []);
 
   const removeTeam = async (teamId: string) => {
-    if (!adminEvent) return;
     setActionBusy(true);
     try {
-      await api.adminDeleteTeam(adminEvent.id, teamId);
+      await api.adminDeleteTeam(teamId);
       notify('success', 'TEAM REMOVED', 'Team and its progress have been deleted.');
       setConfirmDeleteId(null);
       void load();
@@ -80,10 +60,10 @@ export const AdminTeams: React.FC = () => {
           <div>
             <div className="text-[9px] tracking-[0.3em] text-[#E0A83E]">■ TEAM & ROSTER MANAGER</div>
             <h1 className="mt-1 font-display text-xl tracking-wide text-[#F2F5FA]">
-              REGISTERED TEAMS {adminEvent ? `— ${adminEvent.name}` : ''}
+              REGISTERED TEAMS
             </h1>
             <div className="mt-1 text-[11px] text-[#5A6379]">
-              {teams.length} total cells · {teams.filter((t) => t.banned).length} banned
+              {teams.length} total cells
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -116,8 +96,6 @@ export const AdminTeams: React.FC = () => {
 
         {loading ? (
           <div className="mt-8 text-[11px] tracking-[0.3em] text-[#5A6379]">LOADING TEAMS…</div>
-        ) : !adminEvent ? (
-          <div className="mt-8 text-[11px] tracking-[0.3em] text-[#E84D7E]">NO EVENT SELECTED</div>
         ) : filtered.length === 0 ? (
           <div className="mt-8 border border-[#1E2536] p-8 text-center text-[#5A6379] text-[12px]">
             {search ? 'No teams matching search query.' : 'No teams have registered for this event yet.'}
@@ -131,7 +109,6 @@ export const AdminTeams: React.FC = () => {
                   <th className="px-4 py-3">JOIN CODE</th>
                   <th className="px-4 py-3">MEMBERS</th>
                   <th className="px-4 py-3 text-right">SCORE</th>
-                  <th className="px-4 py-3">STATUS</th>
                   <th className="px-4 py-3 text-right">ACTIONS</th>
                 </tr>
               </thead>
@@ -174,30 +151,8 @@ export const AdminTeams: React.FC = () => {
                     <td className="px-4 py-3 text-right font-bold text-[#5ED6E3]">
                       {t.score.toLocaleString()} PTS
                     </td>
-                    <td className="px-4 py-3">
-                      {t.banned ? (
-                        <span className="text-[10px] font-bold text-[#E84D7E] border border-[#E84D7E]/40 px-2 py-0.5 bg-[#E84D7E]/[0.08]">
-                          BANNED
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-bold text-[#5ED6E3] border border-[#5ED6E3]/40 px-2 py-0.5 bg-[#5ED6E3]/[0.05]">
-                          ACTIVE
-                        </span>
-                      )}
-                    </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => void toggleBan(t)}
-                          disabled={actionBusy}
-                          className={`text-[10px] tracking-[0.15em] px-2.5 py-1 border cursor-pointer ${
-                            t.banned
-                              ? 'border-[#5ED6E3]/50 text-[#5ED6E3] hover:bg-[#5ED6E3]/10'
-                              : 'border-[#E84D7E]/50 text-[#E84D7E] hover:bg-[#E84D7E]/10'
-                          }`}
-                        >
-                          {t.banned ? 'UNBAN' : 'BAN'}
-                        </button>
                         <button
                           onClick={() => setConfirmDeleteId(t.id)}
                           disabled={actionBusy}
@@ -214,7 +169,6 @@ export const AdminTeams: React.FC = () => {
           </div>
         )}
 
-        {/* Delete Confirmation Modal */}
         {confirmDeleteId && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="max-w-md w-full border border-[#E84D7E]/60 bg-[#0B0E16] p-6 text-left">

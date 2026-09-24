@@ -1,24 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 
-/**
- * TEAM panel — Displays live team metadata, join code, and full operative roster from the backend.
- */
 export const TeamView: React.FC = () => {
-  const { currentUser, team, teamName, refreshTeam, board } = useGame();
+  const { currentUser, team, refresh, board } = useGame();
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Re-fetch latest team state on view mount and poll every 5s while on this screen
   useEffect(() => {
-    void refreshTeam();
+    void refresh();
     const timer = setInterval(() => {
       if (document.visibilityState === 'visible') {
-        void refreshTeam();
+        void refresh();
       }
     }, 5000);
     return () => clearInterval(timer);
-  }, [refreshTeam]);
+  }, [refresh]);
 
   const handleCopyCode = async () => {
     if (!team?.joinCode) return;
@@ -33,17 +29,11 @@ export const TeamView: React.FC = () => {
 
   const handleManualRefresh = async () => {
     setRefreshing(true);
-    await refreshTeam();
+    await refresh();
     setRefreshing(false);
   };
 
-  // Resolve members from live backend team state or board.team fallback
-  const rawMembers =
-    team?.members && team.members.length > 0
-      ? team.members
-      : (board?.team as any)?.members && (board?.team as any).members.length > 0
-      ? (board?.team as any).members
-      : null;
+  const rawMembers = team?.members || [];
 
   const resolveMemberName = (m: { displayName?: string | null; username?: string; userId?: string }) => {
     if (m.displayName && m.displayName.trim().length > 0) return m.displayName;
@@ -52,7 +42,7 @@ export const TeamView: React.FC = () => {
     return m.userId ? `OPERATIVE_${m.userId.slice(0, 4).toUpperCase()}` : 'OPERATIVE';
   };
 
-  const members = rawMembers
+  const members = rawMembers.length > 0
     ? rawMembers.map((m: any) => ({
         id: m.userId,
         name: resolveMemberName(m),
@@ -87,10 +77,9 @@ export const TeamView: React.FC = () => {
         </div>
 
         <h1 className="mt-2 font-display font-medium tracking-wide text-3xl sm:text-4xl text-[#F2F5FA]">
-          {team?.name || teamName}
+          {team?.name || '—'}
         </h1>
 
-        {/* Join code sharing card */}
         {team?.joinCode && (
           <div className="mt-6 border border-[#5ED6E3]/30 bg-[#0B1522]/50 p-4 relative">
             <div className="text-[10px] tracking-[0.25em] text-[#5ED6E3]">CELL JOIN CODE</div>
@@ -112,7 +101,6 @@ export const TeamView: React.FC = () => {
           </div>
         )}
 
-        {/* Team Leader */}
         <div className="mt-6 border border-[#1E2536] bg-[#0B0E16]/70 px-5 py-3.5 flex items-center justify-between">
           <div className="flex flex-col items-start gap-1">
             <span className="text-[10px] tracking-[0.25em] text-[#C6CCDA] font-semibold">CELL LEADER</span>
@@ -134,7 +122,6 @@ export const TeamView: React.FC = () => {
           </div>
         </div>
 
-        {/* Members Roster */}
         <div className="mt-5 border border-[#1E2536] bg-[#0B0E16]/40">
           <div className="px-5 py-3 border-b border-[#1E2536] flex items-center justify-between text-[10px] tracking-[0.25em] text-[#C6CCDA] font-semibold bg-[#07090F]/80">
             <span>CELL ROSTER · {members.length} / 4 OPERATIVES</span>
@@ -147,7 +134,6 @@ export const TeamView: React.FC = () => {
                 key={m.id}
                 className="px-5 py-3.5 flex items-center justify-between hover:bg-[#0E1320]/50 transition-colors"
               >
-                {/* Left: Name and current user badge */}
                 <div className="flex items-center gap-3">
                   <span className="text-[14px] tracking-[0.08em] text-[#F2F5FA] font-mono font-semibold">
                     {m.name}
@@ -159,7 +145,6 @@ export const TeamView: React.FC = () => {
                   )}
                 </div>
 
-                {/* Right: Role badge */}
                 <div className="text-right">
                   {m.isLeader ? (
                     <span className="text-[10px] tracking-[0.2em] text-[#E0A83E] bg-[#E0A83E]/10 border border-[#E0A83E]/40 px-2.5 py-1 font-semibold inline-flex items-center gap-1.5">
@@ -176,7 +161,6 @@ export const TeamView: React.FC = () => {
           </div>
         </div>
 
-        {/* Role guidance */}
         <div className="mt-6 border-l-2 border-[#3A4358] pl-4 py-1 text-[11px] text-[#A6B2C8] leading-relaxed">
           Points and challenge progress are synchronized in real time across all cell operatives.
         </div>

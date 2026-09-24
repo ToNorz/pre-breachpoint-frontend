@@ -2,16 +2,8 @@ import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { CornerTicks } from './LoginForm';
 
-/**
- * Team formation. Nothing in the event scores without one — `core_solve`,
- * `sz_team_path` is keyed on a team, and the event guard
- * refuses every point-changing action until the player is in one.
- *
- * Four to a team, one team per event, and joining needs both the name and the
- * code so a leaked code alone isn't enough.
- */
 export const TeamGate: React.FC = () => {
-  const { createTeam, joinTeam, logout, currentUser, event, busy } = useGame();
+  const { createTeam, joinTeam, logout, currentUser, busy } = useGame();
   const [mode, setMode] = useState<'create' | 'join'>('create');
   const [name, setName] = useState('');
   const [joinCode, setJoinCode] = useState('');
@@ -27,8 +19,6 @@ export const TeamGate: React.FC = () => {
     setError(null);
     const result = isJoin ? await joinTeam(name, joinCode) : await createTeam(name);
     if (!result.success) setError(result.message);
-    // A created team's join code is the one thing the player must pass to
-    // teammates, so it is surfaced rather than left to the dashboard.
     else if (!isJoin) setCreated(result.message);
   };
 
@@ -36,7 +26,7 @@ export const TeamGate: React.FC = () => {
     <div className="min-h-screen bg-[#07090F] text-[#D5DBE7] font-mono scan-faint flex items-center justify-center px-5 py-12">
       <div className="w-full max-w-lg">
         <div className="text-[10px] tracking-[0.3em] text-[#9BA6BC]">
-          {event?.name ?? 'BREACHPOINT'} // OPERATIVE {currentUser?.username}
+          BREACHPOINT // OPERATIVE {currentUser?.username}
         </div>
 
         <div className="relative mt-4 border border-[#1E2536] bg-[#0A0D15]/90 px-7 py-8">

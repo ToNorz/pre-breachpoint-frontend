@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useGame } from '../context/GameContext';
-import { DIFFICULTY_META } from '../services/backend';
-import { TONE } from '../data/pathsData';
 import { api } from '../services/api';
 import { safeResourceUrl } from '../utils/safeResourceUrl';
+
+const DIFF_COLOR: Record<string, string> = { easy: '#5ED6E3', medium: '#E0A83E', hard: '#E84D7E', expert: '#F2F5FA' };
 
 export const ChallengeView: React.FC = () => {
   const {
     activeChallenge, navigateTo, submitFlag,
-    getPathChallenges, busy,
-    currentUser, event, notify, refresh,
+    busy, currentUser, notify, refresh, board,
   } = useGame();
 
   const [flag, setFlag] = useState('');
@@ -17,26 +16,21 @@ export const ChallengeView: React.FC = () => {
     type: 'idle',
     message: '',
   });
-  const [justSolved, setJustSolved] = useState(false);
   const [showAdminEdit, setShowAdminEdit] = useState(false);
   const [flagHover, setFlagHover] = useState(false);
 
   const challengeId = activeChallenge?.id ?? null;
 
-  // Reset per-challenge UI when navigating between nodes.
   useEffect(() => {
     setFlag('');
     setStatus({ type: 'idle', message: '' });
-    setJustSolved(false);
   }, [challengeId]);
 
   if (!activeChallenge || !activeChallenge.id) {
     return (
       <div className="flex-1 bg-[#07090F] flex flex-col items-center justify-center gap-4 px-6 text-center">
         <div className="text-[13px] text-[#8B93A9]">
-          {activeChallenge
-            ? 'This node has not been revealed to your team yet.'
-            : 'No challenge selected.'}
+          No challenge selected.
         </div>
         <button onClick={() => navigateTo('DASHBOARD')} className="text-[12px] text-[#5ED6E3] cursor-pointer">
           ← BACK TO CHALLENGES
@@ -45,21 +39,16 @@ export const ChallengeView: React.FC = () => {
     );
   }
 
-  const tone = TONE[activeChallenge.pathId];
-  const diff = DIFFICULTY_META[activeChallenge.difficulty];
-  const solved = activeChallenge.status === 'solved' || justSolved;
+  const solved = activeChallenge.status === 'solved';
   const closed = solved;
-  const resourceUrl = safeResourceUrl(activeChallenge.resourceLink);
 
-  // Siblings for prev/next come from the whole path so the arrows still work
-  // across nodes that are revealed but not adjacent in the open set.
-  const all = getPathChallenges(activeChallenge.pathId);
-  const i = all.findIndex((c) => c.slot === activeChallenge.slot);
+  const all = board?.challenges || [];
+  const i = all.findIndex((c) => c.id === activeChallenge.id);
   const prev = i > 0 ? all[i - 1] : null;
   const next = i >= 0 && i < all.length - 1 ? all[i + 1] : null;
 
-  // Fixed gold from the PRE-TRANSMISSION box (Path A amber), not the path tone.
   const GOLD = '#E0A83E';
+  const color = DIFF_COLOR[activeChallenge.difficulty];
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,12 +56,9 @@ export const ChallengeView: React.FC = () => {
     const r = await submitFlag(activeChallenge.id, flag);
     setStatus({ type: r.success ? 'success' : 'error', message: r.message });
     if (r.success) {
-      setJustSolved(true);
       setFlag('');
     }
   };
-
-
 
   return (
     <div className="flex-1 bg-[#07090F]">
@@ -93,11 +79,11 @@ export const ChallengeView: React.FC = () => {
                 ⚡ EDIT CHALLENGE
               </button>
             )}
-            <button onClick={() => prev && navigateTo('CHALLENGE', prev.slot)} disabled={!prev} className="disabled:opacity-30 hover:text-[#F2F5FA] cursor-pointer">←</button>
+            <button onClick={() => prev && navigateTo('CHALLENGE', prev.id)} disabled={!prev} className="disabled:opacity-30 hover:text-[#F2F5FA] cursor-pointer">←</button>
             <button
               onClick={() => {
                 if (next) {
-                  navigateTo('CHALLENGE', next.slot);
+                  navigateTo('CHALLENGE', next.id);
                 }
               }}
               disabled={!next}
@@ -108,66 +94,70 @@ export const ChallengeView: React.FC = () => {
           </span>
         </div>
 
-        <div className="mt-10 text-[11px] font-semibold tracking-[0.25em]" style={{ color: tone }}>
-          {activeChallenge.slot} · {activeChallenge.category}
-          {solved ? ' · HELD ✓' : ''}
-        </div>
-        <h1 className="mt-3 font-display uppercase tracking-wide text-3xl sm:text-5xl leading-tight text-[#F2F5FA]">
+        <h1 className="mt-8 font-display uppercase tracking-wide text-3xl sm:text-5xl leading-tight text-[#F2F5FA]">
           {activeChallenge.title}
         </h1>
         <div className="mt-3 flex flex-wrap items-center gap-3 text-[12px] text-[#8B93A9]">
           <span
             className="font-bold tracking-[0.15em] px-1.5 py-0.5 border"
-            style={{ color: diff.color, borderColor: `${diff.color}66` }}
+            style={{ color: color, borderColor: `${color}66` }}
           >
-            {diff.label}
+            {activeChallenge.category.toUpperCase()} ({activeChallenge.difficulty.toUpperCase()})
           </span>
-          {/* The live price, priced by the server. The path multiplier is
-              applied on top of it at solve time. */}
           <span className="text-[#F2F5FA]">
-            · {activeChallenge.currentPoints} PTS
+            · {activeChallenge.points} PTS
           </span>
-          {activeChallenge.currentPoints < activeChallenge.points && (
-            <span className="text-[#8B93A9]">
-              · decayed from {activeChallenge.points}
-              {activeChallenge.solves > 0 && ` by ${activeChallenge.solves} solve${activeChallenge.solves === 1 ? '' : 's'}`}
-            </span>
-          )}
-          {activeChallenge.solves === 0 && (
-            <span className="text-[#E0A83E]">· UNSOLVED — FIRST BLOOD</span>
-          )}
-
-          {activeChallenge.maxAttempts !== null && (
-            <span className="text-[#E0A83E]">· MAX {activeChallenge.maxAttempts} ATTEMPTS</span>
-          )}
+          <span className="text-[#F2F5FA]">
+            · {activeChallenge.solvesCount} SOLVES
+          </span>
         </div>
 
         <div className="mt-10 text-[10px] font-semibold tracking-[0.3em] text-[#5A6379]">
-          OBJECTIVE // {activeChallenge.era} · {activeChallenge.track}
+          OBJECTIVE
         </div>
         <p className="mt-3 text-[15px] text-[#C6CCDA] leading-[1.8] max-w-3xl whitespace-pre-line">
           {activeChallenge.objective}
         </p>
 
-        {/* Challenge Attachment / Target Link */}
-        {resourceUrl && (
-          <div className="mt-5">
-            <a
-              href={resourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2.5 px-4 py-2.5 text-[11px] font-mono font-semibold tracking-[0.2em] border border-[#5ED6E3]/40 bg-[#5ED6E3]/10 text-[#5ED6E3] hover:bg-[#5ED6E3]/20 hover:border-[#5ED6E3]/70 hover:shadow-[0_0_15px_rgba(94,214,227,0.15)] transition-all cursor-pointer"
-            >
-              <span>
-                {activeChallenge.resourceLink.includes('drive.google')
-                  ? '⬇ DOWNLOAD ATTACHMENT'
-                  : '↗ ACCESS CHALLENGE TARGET'}
-              </span>
-            </a>
+        {activeChallenge.resourceLink && activeChallenge.resourceLink.startsWith('nc ') ? (
+          <div className="mt-6">
+            <span className="text-[10px] tracking-[0.2em] text-[#5A6379] font-bold block mb-3">CONNECTION</span>
+            <div className="flex items-center gap-3">
+              <code className="bg-[#07090F] border border-[#1E2536] px-4 py-3 text-[#5ED6E3] font-mono text-[13px] rounded-sm select-all">
+                {activeChallenge.resourceLink}
+              </code>
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigator.clipboard.writeText(activeChallenge.resourceLink!);
+                  notify('success', 'COPIED', 'Connection string copied to clipboard');
+                }}
+                className="inline-flex items-center gap-2 border border-[#5ED6E3]/40 bg-[#5ED6E3]/[0.08] px-4 py-3 hover:bg-[#5ED6E3]/20 hover:border-[#5ED6E3]/60 transition-all text-[#5ED6E3] cursor-pointer"
+              >
+                <span className="text-[11px] font-bold tracking-[0.2em]">
+                  COPY
+                </span>
+              </button>
+            </div>
           </div>
-        )}
-
-
+        ) : safeResourceUrl(activeChallenge.resourceLink) && (() => {
+          const url = safeResourceUrl(activeChallenge.resourceLink)!;
+          const isDrive = url.includes('drive.google.com');
+          return (
+            <div className="mt-6">
+              <a 
+                href={url} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="inline-flex items-center gap-3 border border-[#E0A83E]/40 bg-[#E0A83E]/[0.08] px-5 py-3 hover:bg-[#E0A83E]/20 hover:border-[#E0A83E]/60 transition-all text-[#E0A83E] cursor-pointer"
+              >
+                <span className="text-[11px] font-bold tracking-[0.2em]">
+                  {isDrive ? 'DOWNLOAD ATTACHMENT ↓' : 'GO TO TARGET ↗'}
+                </span>
+              </a>
+            </div>
+          );
+        })()}
 
         <form onSubmit={submit} className="mt-10 max-w-4xl">
           {!solved && (
@@ -245,7 +235,7 @@ export const ChallengeView: React.FC = () => {
 
           {solved && (
             <div className="mt-4 border border-[#5ED6E3]/50 bg-[#5ED6E3]/[0.06] px-4 py-3 text-[12px] text-[#5ED6E3]">
-              CHALLENGE SOLVED · FLAG ACCEPTED
+               CHALLENGE SOLVED · FLAG ACCEPTED
             </div>
           )}
           {status.type !== 'idle' && (
@@ -257,26 +247,23 @@ export const ChallengeView: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                navigateTo('CHALLENGE', next.slot);
+                navigateTo('CHALLENGE', next.id);
               }}
-              className="mt-3 text-[12px] underline underline-offset-4 cursor-pointer"
-              style={{ color: tone }}
+              className="mt-3 text-[12px] underline underline-offset-4 cursor-pointer text-[#5ED6E3]"
             >
-              Next: {next.slot} →
+              Next Challenge →
             </button>
           )}
 
-
         </form>
 
-        {showAdminEdit && event && (
+        {showAdminEdit && (
           <AdminChallengeModal
-            eventId={event.id}
             challengeTitle={activeChallenge.title}
             challengeId={activeChallenge.id}
-            challengeSlot={activeChallenge.slot}
             points={activeChallenge.points}
             description={activeChallenge.objective}
+            resourceLink={activeChallenge.resourceLink || ''}
             onClose={() => setShowAdminEdit(false)}
             onDone={async () => {
               setShowAdminEdit(false);
@@ -290,31 +277,32 @@ export const ChallengeView: React.FC = () => {
 };
 
 const AdminChallengeModal: React.FC<{
-  eventId: string;
   challengeTitle: string;
   challengeId: string;
-  challengeSlot: string;
   points: number;
   description: string;
+  resourceLink: string;
   onClose: () => void;
   onDone: () => void;
-}> = ({ eventId, challengeTitle, challengeId, challengeSlot, points: initialPoints, description: initialDesc, onClose, onDone }) => {
+}> = ({ challengeTitle, challengeId, points: initialPoints, description: initialDesc, resourceLink: initialLink, onClose, onDone }) => {
   const { notify } = useGame();
   const [title, setTitle] = useState(challengeTitle);
   const [description, setDescription] = useState(initialDesc);
   const [points, setPoints] = useState(String(initialPoints));
   const [newFlag, setNewFlag] = useState('');
+  const [resourceLink, setResourceLink] = useState(initialLink);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
-      await api.adminPatchChallenge(eventId, challengeId, {
+      await api.adminPatchChallenge(challengeId, {
         title: title.trim() || undefined,
         description: description.trim() || undefined,
-        initialPoints: Number(points) || undefined,
+        points: Number(points) || undefined,
         flag: newFlag.trim() || undefined,
+        resourceLink: resourceLink.trim() || undefined,
       });
       notify('success', 'CHALLENGE UPDATED', `"${title}" saved.`);
       onDone();
@@ -336,7 +324,7 @@ const AdminChallengeModal: React.FC<{
       >
         <div className="flex items-center justify-between pb-3 border-b border-[#1E2536]">
           <div className="text-[11px] tracking-[0.25em] text-[#5ED6E3] font-bold font-display">
-            ADMIN EDIT CHALLENGE // {challengeSlot}
+            ADMIN EDIT CHALLENGE
           </div>
           <button
             type="button"
@@ -365,9 +353,18 @@ const AdminChallengeModal: React.FC<{
               className="w-full bg-[#07090F] border border-[#1E2536] text-[#F2F5FA] px-3 py-2 text-[12px] font-mono focus:border-[#5ED6E3] outline-none"
             />
           </div>
+          <div>
+            <label className="text-[10px] tracking-[0.2em] text-[#5A6379] block mb-1">RESOURCE LINK (OPTIONAL)</label>
+            <input
+              value={resourceLink}
+              onChange={(e) => setResourceLink(e.target.value)}
+              placeholder="https://..."
+              className="w-full bg-[#07090F] border border-[#1E2536] text-[#F2F5FA] px-3 py-2 text-[12px] font-mono focus:border-[#5ED6E3] outline-none"
+            />
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] tracking-[0.2em] text-[#5A6379] block mb-1">INITIAL POINTS</label>
+              <label className="text-[10px] tracking-[0.2em] text-[#5A6379] block mb-1">POINTS</label>
               <input
                 value={points}
                 onChange={(e) => setPoints(e.target.value)}
